@@ -1,0 +1,61 @@
+# Base configuration for Jira Sprint Sunburst Report
+# NEVER put secrets (OAuth credentials) in this file — use environment variables
+# Required env vars: JIRA_CLIENT_ID, JIRA_CLIENT_SECRET
+
+jira:
+  baseUrl: https://your-org.atlassian.net
+  boardId: 1
+  # Resolve these via GET /rest/api/3/field, then update with actual IDs
+  storyPointsFieldId: customfield_10016
+  classificationFieldId: customfield_10000
+  authType: oauth
+
+window:
+  closed: 3   # Number of most recently closed sprints to include
+  future: 3   # Number of future sprints to include
+
+report:
+  showEmptyCategories: false  # Show zero-valued categories in sunburst
+  # Target classification percentages for ideal distribution comparison
+  # Adjust these percentages to match your organization's goals
+  targetClassifications:
+    # App Development
+    - level1: "App Dev"
+      level2: "New Feature"
+      percentage: 25
+    - level1: "App Dev"
+      level2: "Enhancement"
+      percentage: 15
+    - level1: "App Dev"
+      level2: "Bug Fix"
+      percentage: 10
+    # Infrastructure
+    - level1: "Infrastructure"
+      level2: "Performance"
+      percentage: 10
+    - level1: "Infrastructure"
+      level2: "Security"
+      percentage: 10
+    - level1: "Infrastructure"
+      level2: "Maintenance"
+      percentage: 5
+    # Documentation
+    - level1: "Documentation"
+      level2: "User Docs"
+      percentage: 10
+    - level1: "Documentation"
+      level2: "Technical Docs"
+      percentage: 5
+    # Testing
+    - level1: "Testing"
+      level2: "Automated Tests"
+      percentage: 5
+    - level1: "Testing"
+      level2: "Manual Testing"
+      percentage: 5
+
+output:
+  type: local
+  path: ./out/report.html
+
+logLevel: info  # trace | debug | info | warn | error | fatal

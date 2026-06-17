@@ -1,0 +1,9 @@
+node_modules/
+dist/
+out/
+*.log
+.DS_Store
+coverage/
+.env
+.claude/settings.local.json
+config/config.local.yaml
