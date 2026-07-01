@@ -22,6 +22,7 @@ export class IssueRepository {
     private readonly client: JiraClient,
     private readonly storyPointsFieldId: string,
     private readonly classificationFieldId: string,
+    private readonly QAFailCountFieldId: string,
     private readonly logger: Logger
   ) {}
 
@@ -34,7 +35,7 @@ export class IssueRepository {
     this.logger.info({ sprintId }, 'Fetching issues for sprint');
 
     const jql = `sprint = ${sprintId}`;
-    const fields = ['key', 'summary', this.storyPointsFieldId, this.classificationFieldId];
+    const fields = ['key', 'summary', this.storyPointsFieldId, this.classificationFieldId, this.QAFailCountFieldId];
 
     const allIssues: Issue[] = [];
     let nextPageToken: string | undefined = undefined;
@@ -106,11 +107,16 @@ export class IssueRepository {
     // Extract summary
     const summary = typeof fields.summary === 'string' ? fields.summary : '';
 
+    // Extract QA fail count (default to 0 if not set)
+    const qaFailCountRaw = fields[this.QAFailCountFieldId];
+    const qaFailCount = typeof qaFailCountRaw === 'number' ? qaFailCountRaw : 0;
+
     return {
       key: jiraIssue.key,
       summary,
       storyPoints,
-      classification
+      classification,
+      qaFailCount
     };
   }
 }
