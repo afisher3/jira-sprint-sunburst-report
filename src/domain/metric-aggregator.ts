@@ -13,10 +13,10 @@ export class MetricAggregator {
     static aggregate(issues: Issue[]): MetricDataset {
 
         //Count of issues that failed QA
-        let qaFailSum = 0;
+        let qaFailCount = 0;
 
         // Count of issues that failed UAT
-        let uatFailSum = 0;
+        let uatFailCount = 0;
 
         //Count of issues that have been through QA/UAT
         let pastQASum = 0;
@@ -24,14 +24,14 @@ export class MetricAggregator {
 
         for (const issue of issues) {
             if (issue.qaFailCount > 0) {
-                qaFailSum++;
+                qaFailCount++;
                 pastQASum++;
             }
             else if (pastQA.includes(issue.status)) {
                 pastQASum++;
             }
             if (issue.uatFailCount > 0) {
-                uatFailSum++;
+                uatFailCount++;
                 pastUATSum++;
             }
             else if (pastUAT.includes(issue.status)) {
@@ -40,15 +40,15 @@ export class MetricAggregator {
 
         }
 
-        const QAReturnRate = Number(((pastQASum > 0 ? qaFailSum / pastQASum : 0)*100).toFixed(2));
-        const UATReturnRate = Number(((pastUATSum > 0 ? uatFailSum / pastUATSum : 0)*100).toFixed(2));
+        const qaReturnRate = Number(((pastQASum > 0 ? qaFailCount / pastQASum : 0)*100).toFixed(2));
+        const uatReturnRate = Number(((pastUATSum > 0 ? uatFailCount / pastUATSum : 0)*100).toFixed(2));
 
 
         return {
-            qaFailSum,
-            uatFailSum,
-            QAReturnRate,
-            UATReturnRate
+            qaFailCount,
+            uatFailCount,
+            qaReturnRate,
+            uatReturnRate
         };
     }
 }
