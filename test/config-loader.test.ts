@@ -31,6 +31,8 @@ jira:
   boardId: 123
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10100
+  qaFailCountFieldId: customfield_10223
+  uatFailCountFieldId: customfield_10224
   authType: oauth
 window:
   closed: 3
@@ -69,6 +71,8 @@ jira:
   boardId: 123
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10100
+  qaFailCountFieldId: customfield_10223
+  uatFailCountFieldId: customfield_10224
 window:
   closed: 3
   future: 3
@@ -94,6 +98,8 @@ jira:
   boardId: 123
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10100
+  qaFailCountFieldId: customfield_10223
+  uatFailCountFieldId: customfield_10224
 window:
   closed: 3
   future: 3
@@ -118,6 +124,8 @@ jira:
   baseUrl: https://test.atlassian.net
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10100
+  qaFailCountFieldId: customfield_10223
+  uatFailCountFieldId: customfield_10224
 window:
   closed: 3
   future: 3
@@ -144,6 +152,8 @@ jira:
   boardId: 123
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10100
+  qaFailCountFieldId: customfield_10223
+  uatFailCountFieldId: customfield_10224
 window:
   closed: 3
   future: 3
@@ -169,6 +179,8 @@ jira:
   boardId: 123
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10100
+  qaFailCountFieldId: customfield_10223
+  uatFailCountFieldId: customfield_10224
 window:
   closed: 3
   future: 3
@@ -193,6 +205,8 @@ jira:
   boardId: 123
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10100
+  qaFailCountFieldId: customfield_10223
+  uatFailCountFieldId: customfield_10224
 output:
   type: local
   path: ./out/report.html
@@ -209,5 +223,59 @@ output:
     expect(config.window.future).toBe(3);
     expect(config.report.showEmptyCategories).toBe(false);
     expect(config.logLevel).toBe('info');
+  });
+
+  it ('should fail when qaFailCountFieldId is missing', () => {
+    const invalidConfig = `
+jira:
+  baseUrl: https://test.atlassian.net
+  boardId: 123
+  storyPointsFieldId: customfield_10016
+  classificationFieldId: customfield_10100
+  uatFailCountFieldId: customfield_10224
+window:
+  closed: 3
+  future: 3
+report:
+  showEmptyCategories: false
+output:
+  type: local
+  path: ./out/report.html
+logLevel: info
+`;
+    const configPath = join(TEST_DIR, 'missing-qa-fail-field.yaml');
+    writeFileSync(configPath, invalidConfig);
+    process.env.JIRA_CLIENT_ID = 'test-client-id';
+    process.env.JIRA_CLIENT_SECRET = 'test-client-secret';
+
+    expect(() => ConfigLoader.load(configPath)).toThrow('Configuration validation failed');
+    expect(() => ConfigLoader.load(configPath)).toThrow('jira.qaFailCountFieldId');
+  });
+
+  it ('should fail when uatFailCountFieldId is missing', () => {
+    const invalidConfig = `
+jira:
+  baseUrl: https://test.atlassian.net
+  boardId: 123
+  storyPointsFieldId: customfield_10016
+  classificationFieldId: customfield_10100
+  qaFailCountFieldId: customfield_10223
+window:
+  closed: 3
+  future: 3
+report:
+  showEmptyCategories: false
+output:
+  type: local
+  path: ./out/report.html
+logLevel: info
+`;
+    const configPath = join(TEST_DIR, 'missing-uat-fail-field.yaml');
+    writeFileSync(configPath, invalidConfig);
+    process.env.JIRA_CLIENT_ID = 'test-client-id';
+    process.env.JIRA_CLIENT_SECRET = 'test-client-secret';
+
+    expect(() => ConfigLoader.load(configPath)).toThrow('Configuration validation failed');
+    expect(() => ConfigLoader.load(configPath)).toThrow('jira.uatFailCountFieldId');
   });
 });
