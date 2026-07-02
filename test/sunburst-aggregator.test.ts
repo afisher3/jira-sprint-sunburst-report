@@ -5,7 +5,7 @@ import type { Issue } from '../src/domain/issue.js';
 describe('SunburstAggregator', () => {
   it('should aggregate issues by classification and sum story points', () => {
     const issues: Issue[] = [
-      { key: 'PROJ-1', summary: 'Task 1', status: 'Ready for Dev', storyPoints: 5, classification: { level1: 'App Dev', level2: 'New Feature' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-1', summary: 'Task 1', status: 'ready for dev', storyPoints: 5, classification: { level1: 'App Dev', level2: 'New Feature' }, qaFailCount: 0, uatFailCount: 0 },
       { key: 'PROJ-2', summary: 'Task 2', status: 'In UAT', storyPoints: 3, classification: { level1: 'App Dev', level2: 'New Feature' }, qaFailCount: 0, uatFailCount: 0 },
       { key: 'PROJ-3', summary: 'Task 3', status: 'Ready for Peer Review', storyPoints: 2, classification: { level1: 'App Dev', level2: 'Bug Fix' }, qaFailCount: 0, uatFailCount: 0 },
       { key: 'PROJ-4', summary: 'Task 4', status: 'In Progress', storyPoints: 4, classification: { level1: 'Infrastructure', level2: 'Maintenance' }, qaFailCount: 0, uatFailCount: 0 }
