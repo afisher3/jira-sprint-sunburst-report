@@ -22,7 +22,8 @@ export class IssueRepository {
     private readonly client: JiraClient,
     private readonly storyPointsFieldId: string,
     private readonly classificationFieldId: string,
-    private readonly QAFailCountFieldId: string,
+    private readonly qaFailCountFieldId: string,
+    private readonly uatFailCountFieldId: string,
     private readonly logger: Logger
   ) {}
 
@@ -35,7 +36,7 @@ export class IssueRepository {
     this.logger.info({ sprintId }, 'Fetching issues for sprint');
 
     const jql = `sprint = ${sprintId}`;
-    const fields = ['key', 'summary', this.storyPointsFieldId, this.classificationFieldId, this.QAFailCountFieldId];
+    const fields = ['key', 'summary', 'status', this.storyPointsFieldId, this.classificationFieldId, this.qaFailCountFieldId, this.uatFailCountFieldId];
 
     const allIssues: Issue[] = [];
     let nextPageToken: string | undefined = undefined;
@@ -107,16 +108,29 @@ export class IssueRepository {
     // Extract summary
     const summary = typeof fields.summary === 'string' ? fields.summary : '';
 
+    let status = '';
+    const statusRaw = fields.status as { name?: string } | undefined;
+
+    if (statusRaw && statusRaw.name !== undefined) {
+      status = statusRaw.name;
+    }
+
     // Extract QA fail count (default to 0 if not set)
-    const qaFailCountRaw = fields[this.QAFailCountFieldId];
+    const qaFailCountRaw = fields[this.qaFailCountFieldId];
     const qaFailCount = typeof qaFailCountRaw === 'number' ? qaFailCountRaw : 0;
+
+    // Extract UAT fail count (default to 0 if not set)
+    const uatFailCountRaw = fields[this.uatFailCountFieldId];
+    const uatFailCount = typeof uatFailCountRaw === 'number' ? uatFailCountRaw : 0;
 
     return {
       key: jiraIssue.key,
       summary,
+      status,
       storyPoints,
       classification,
-      qaFailCount
+      qaFailCount,
+      uatFailCount
     };
   }
 }

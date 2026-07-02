@@ -1,5 +1,6 @@
 import type { Sprint } from '../domain/sprint.js';
 import type { SunburstDataset } from '../domain/sunburst-dataset.js';
+import type { MetricDataset } from '../domain/metric-dataset.js';
 
 /**
  * ReportModel — the data structure passed to HtmlReportRenderer.
@@ -12,5 +13,6 @@ export interface ReportModel {
   boardId: number;
   sprints: Sprint[];                               // Windowed sprint list for menu
   datasets: Map<number, SunburstDataset>;          // Sunburst data per sprint ID
+  metricDatasets: Map<number, MetricDataset>;       // Metric data per sprint ID
   targetDataset?: SunburstDataset;                 // Target/ideal distribution
 }

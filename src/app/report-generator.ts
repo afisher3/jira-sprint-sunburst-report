@@ -7,6 +7,7 @@ import { JiraClient } from '../jira/jira-client.js';
 import { SprintRepository } from '../jira/sprint-repository.js';
 import { IssueRepository } from '../jira/issue-repository.js';
 import { SunburstAggregator } from '../domain/sunburst-aggregator.js';
+import { MetricAggregator } from '../domain/metric-aggregator.js';
 import { TargetSunburstGenerator } from '../domain/target-sunburst-generator.js';
 
 /**
@@ -44,6 +45,8 @@ export class ReportGenerator {
       this.jiraClient,
       config.jira.storyPointsFieldId,
       config.jira.classificationFieldId,
+      config.jira.qaFailCountFieldId,
+      config.jira.uatFailCountFieldId,
       logger.child({ component: 'IssueRepository' })
     );
   }
@@ -69,6 +72,7 @@ export class ReportGenerator {
 
     // Fetch issues for each sprint and build sunburst datasets
     const datasets = new Map();
+    const metricDatasets = new Map();
 
     for (const sprint of windowedSprints) {
       const issues = await this.issueRepo.fetchBySprint(sprint.id);
@@ -76,8 +80,10 @@ export class ReportGenerator {
         issues,
         this.config.report.showEmptyCategories
       );
+      const metricDataset = MetricAggregator.aggregate(issues)
 
       datasets.set(sprint.id, dataset);
+      metricDatasets.set(sprint.id, metricDataset);
 
       this.logger.info({
         sprintId: sprint.id,
@@ -107,6 +113,7 @@ export class ReportGenerator {
       boardId: this.config.jira.boardId,
       sprints: windowedSprints,
       datasets,
+      metricDatasets,
       targetDataset
     };
 
