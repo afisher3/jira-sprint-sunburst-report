@@ -15,7 +15,7 @@ export class LoggerFactory {
    */
   static init(level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'): void {
     if (this.rootLogger) {
-      throw new Error('LoggerFactory already initialized. Call init() only once.');
+      return;
     }
 
     this.rootLogger = pino({

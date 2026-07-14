@@ -1,16 +1,13 @@
 import * as esbuild from 'esbuild';
 
-// Build main CLI
 await esbuild.build({
-  entryPoints: ['src/cli.ts', 'src/discover-fields.ts'],
-  bundle: true,
+  entryPoints: ['src/**/*','config/schema.ts'],
+  bundle: false,
   platform: 'node',
   target: 'node20',
-  format: 'esm',
-  outdir: 'dist',
+    outdir: 'dist',
   sourcemap: true,
   minify: false,
-  packages: 'external'
 });
 
-console.log('Build complete: dist/cli.js, dist/discover-fields.js');
+console.log('Build complete: dist/cli.js, dist/discover-fields.js, dist/lambda-handler.js');

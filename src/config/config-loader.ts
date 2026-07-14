@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { parse as parseYaml } from 'yaml';
 import { ConfigSchema, type ConfigType } from '../../config/schema.js';
+import {type JiraKeys} from '../handlers/lambda-handler.js'
 import type { AppConfig } from './app-config.js';
 
 /**
@@ -14,7 +15,7 @@ export class ConfigLoader {
    * @returns Validated AppConfig with secrets resolved from environment
    * @throws Error if file not found, YAML invalid, schema validation fails, or secrets missing
    */
-  static load(filePath: string): AppConfig {
+  static load(filePath: string, jiraKeys: JiraKeys): AppConfig {
     let fileContent: string;
     try {
       fileContent = readFileSync(filePath, 'utf-8');
@@ -39,20 +40,24 @@ export class ConfigLoader {
     const validatedConfig: ConfigType = parseResult.data;
 
     // Resolve OAuth credentials from environment
-    const clientId = process.env.JIRA_CLIENT_ID;
+    const clientId = jiraKeys.client_id;
     if (!clientId || clientId.trim() === '') {
-      throw new Error('JIRA_CLIENT_ID environment variable is required but not set or empty');
+      throw new Error('JIRA_CLIENT_ID is required but not set or empty');
     }
 
-    const clientSecret = process.env.JIRA_CLIENT_SECRET;
+    const clientSecret = jiraKeys.client_secret;
     if (!clientSecret || clientSecret.trim() === '') {
-      throw new Error('JIRA_CLIENT_SECRET environment variable is required but not set or empty');
+      throw new Error('JIRA_CLIENT_SECRET is required but not set or empty');
+    }
+
+    if (!jiraKeys.base_url || jiraKeys.base_url.trim()===''){
+      throw new Error ('Jira Base URL Missing in Config')
     }
 
     // Build AppConfig
     const appConfig: AppConfig = {
       jira: {
-        baseUrl: validatedConfig.jira.baseUrl,
+        baseUrl: jiraKeys.base_url,
         boardId: validatedConfig.jira.boardId,
         storyPointsFieldId: validatedConfig.jira.storyPointsFieldId,
         classificationFieldId: validatedConfig.jira.classificationFieldId,

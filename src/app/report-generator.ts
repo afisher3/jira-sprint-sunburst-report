@@ -2,13 +2,13 @@ import type { Logger } from 'pino';
 import type { AppConfig } from '../config/app-config.js';
 import { HtmlReportRenderer } from '../report/html-report-renderer.js';
 import type { ReportModel } from '../report/report-model.js';
-import type { OutputTarget } from '../report/output/output-target.js';
 import { JiraClient } from '../jira/jira-client.js';
 import { SprintRepository } from '../jira/sprint-repository.js';
 import { IssueRepository } from '../jira/issue-repository.js';
 import { SunburstAggregator } from '../domain/sunburst-aggregator.js';
 import { MetricAggregator } from '../domain/metric-aggregator.js';
 import { TargetSunburstGenerator } from '../domain/target-sunburst-generator.js';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 /**
  * ReportGenerator — orchestrates the entire report generation flow.
@@ -22,16 +22,25 @@ export class ReportGenerator {
 
   constructor(
     private readonly config: AppConfig,
-    private readonly output: OutputTarget,
     private readonly logger: Logger
   ) {
     this.renderer = new HtmlReportRenderer(logger.child({ component: 'HtmlReportRenderer' }));
 
+    //validate configuration
+    if (!config.jira.baseUrl){
+      throw new Error("Jira URL not loaded into config")
+    }
+    if (!config.jira.clientId){
+      throw new Error("Jira Client ID not loaded into config")
+    }
+    if (!config.jira.clientSecret){
+      throw new Error("Jira Client Secret not loaded into config")
+    }
     // Wire up Jira client and repositories
     this.jiraClient = new JiraClient(
-      config.jira.baseUrl,
-      config.jira.clientId,
-      config.jira.clientSecret,
+      config.jira.baseUrl.trim(),
+      config.jira.clientId.trim(),
+      config.jira.clientSecret.trim(),
       logger.child({ component: 'JiraClient' })
     );
 
@@ -61,6 +70,14 @@ export class ReportGenerator {
     // Discover all sprints on the board
     const allSprints = await this.sprintRepo.discoverSprints();
 
+    // Throughput statuses
+    const throughputStagesEndStatuses = {
+      refinement: 'ready for dev',
+      development: 'Ready for Testing',
+      testing: 'Ready for UAT',
+      uatSignoff: 'Resolved'
+    } as const;
+
     // Select the window
     const windowedSprints = this.sprintRepo.selectWindow(
       allSprints,
@@ -80,8 +97,18 @@ export class ReportGenerator {
         issues,
         this.config.report.showEmptyCategories
       );
-      const metricDataset = MetricAggregator.aggregate(issues)
-
+    
+      const metricDataset = MetricAggregator.aggregate(issues);
+      const [refinementThroughput, devThroughput, testingThroughput, uatSignoffThroughput] = await Promise.all([
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.refinement),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.development),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.testing),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.uatSignoff)
+      ]);
+      metricDataset.refinementThroughput = refinementThroughput;
+      metricDataset.devThroughput = devThroughput;
+      metricDataset.testingThroughput = testingThroughput;
+      metricDataset.uatSignoffThroughput = uatSignoffThroughput;
       datasets.set(sprint.id, dataset);
       metricDatasets.set(sprint.id, metricDataset);
 
@@ -123,7 +150,17 @@ export class ReportGenerator {
     const html = this.renderer.render(model);
 
     // Write to output
-    await this.output.write(html, 'jira-sunburst-report');
+    //await this.output.write(html, 'jira-sunburst-report');
+    const s3Client = new S3Client({});
+    const command = new PutObjectCommand({
+      Bucket: process.env.BUCKET_NAME,
+      Key: "metrics-report",
+      Body:html,
+      ContentType:"text/html",
+      ContentDisposition:"inline"
+    })
+    const response = await s3Client.send(command);
+    this.logger.info(response);
 
     this.logger.info('Report generation complete');
   }

@@ -6,7 +6,6 @@ import { z } from 'zod';
  */
 
 export const JiraConfigSchema = z.object({
-  baseUrl: z.string().url('baseUrl must be a valid URL'),
   boardId: z.number().int().positive('boardId must be a positive integer'),
   storyPointsFieldId: z.string().min(1, 'storyPointsFieldId must not be empty'),
   classificationFieldId: z.string().min(1, 'classificationFieldId must not be empty'),

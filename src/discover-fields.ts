@@ -17,12 +17,23 @@
 import { ConfigLoader } from './config/config-loader.js';
 import { LoggerFactory } from './logging/logger-factory.js';
 import { JiraClient } from './jira/jira-client.js';
+import { getJiraKeys } from './handlers/lambda-handler.js'
 
 async function main() {
   LoggerFactory.init('info'); // Initialize logger factory
   const logger = LoggerFactory.child('FieldDiscovery');
-  const config = ConfigLoader.load('config/config.local.yaml');
+  const config = ConfigLoader.load('config/config.local.yaml',await getJiraKeys(logger));
 
+  //validate configuration
+  if (!config.jira.baseUrl){
+    throw new Error("Jira URL not loaded into config")
+  }
+  if (!config.jira.clientId){
+    throw new Error("Jira Client ID not loaded into config")
+  }
+  if (!config.jira.clientSecret){
+    throw new Error("Jira Client Secret not loaded into config")
+  }  
   const jiraClient = new JiraClient(
     config.jira.baseUrl,
     config.jira.clientId,
