@@ -51,11 +51,12 @@ export class IssueRepository {
         nextPageToken
       );
 
+      this.logger.info("Jira response has " + response.issues.length + " issues")
       // Debug: log raw response structure for first page
       if (pageCount === 1 && response.issues && response.issues.length > 0) {
         const firstIssue = response.issues[0];
         const classValue = firstIssue.fields?.[this.classificationFieldId];
-        this.logger.debug({
+        this.logger.info({
           sprintId,
           sampleKey: firstIssue.key,
           fieldKeys: Object.keys(firstIssue.fields || {}),
@@ -91,6 +92,34 @@ export class IssueRepository {
     }, 'Issues fetched for sprint');
 
     return allIssues;
+  }
+
+  async fetchThroughputBySprintStage(sprintId: number, toStatus: string): Promise<number> {
+    // Fetch the count of issues that transitioned to a specific status in the last 30 days for a given sprint
+    const jql = `sprint = ${sprintId} AND Status changed to "${toStatus}" after -30d`;
+    let nextPageToken: string | undefined = undefined;
+    let throughputCount = 0;
+
+    while (true) {
+
+      const response = await this.client.searchJql<JiraSearchResponse>(
+        jql,
+        ['key', 'status'],
+        nextPageToken
+      );
+
+      // Debug: log raw response
+      //this.logger.info("Throughput Count: " + response.issues.length);
+
+      throughputCount += response.issues.length;
+
+      if (!response.nextPageToken) {
+        break;
+      }
+
+      nextPageToken = response.nextPageToken;
+    }
+    return throughputCount;
   }
 
   private mapIssue(jiraIssue: JiraIssue): Issue {
