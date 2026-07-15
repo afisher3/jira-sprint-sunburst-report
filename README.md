@@ -30,6 +30,9 @@ This tool automatically pulls sprint data from Jira Cloud and generates an inter
 - **Easy to understand**: Color-coded hierarchy makes it clear where points are allocated
 - **Exportable**: HTML reports can be shared, embedded in Confluence, or presented to executives
 
+**5. Delivery Health**
+- **Flow metrics**: Throughput per stage and return rate surface bottlenecks
+
 ### Example Use Cases
 
 - **Sprint Planning**: "Are we allocating enough points to security work this quarter?"
@@ -44,9 +47,11 @@ This tool automatically pulls sprint data from Jira Cloud and generates an inter
 ## Metrics Definitions
 - QA Return Rate: percent of issues that failed QA in the last 30 days
   (number of issues that failed QA / number of issues that moved out of QA)*100
+  If no issues have moved past QA, it will be reported as zero
 - UAT Return Rate: percent of issues that failed UAT in the last 30 days
   (number of issues that failed UAT / number of issues that moved out of UAT)*100
-- Throughput: number of issues that moved out of that stage in the last 30 days
+  If no issues have moved past UAT, it will be reported as zero
+- Throughput: number of issues that reached the final status of each stage in the last 30 days
 
 ## Current Status
 
@@ -57,7 +62,7 @@ This tool automatically pulls sprint data from Jira Cloud and generates an inter
 
 ## Prerequisites
 
-- Node.js 20+ (LTS)
+- Node.js 22+ (LTS)
 - Jira Cloud account with OAuth 2.0 credentials
 - JIRA_CLIENT_ID and JIRA_CLIENT_SECRET environment variables
 
@@ -105,14 +110,22 @@ node dist/cli.js path/to/config.yaml
 npm test
 ```
 
-The report will be written to the S3 bucket created by SAM
-
 The generated HTML report shows:
 - Sprint selection via checkboxes (all active + 3 most recent closed + 3 next future sprints)
 - Interactive sunburst chart aggregating selected sprints
 - Side-by-side target distribution comparison (configurable)
 - Real-time updates as you check/uncheck sprints
 - Summary stats: total story points, issues, and categories
+
+## Output
+The HTML report will be written to the S3 bucket specified by the environment variable BUCKET_NAME under the key 'metrics-report'
+Each run overrides the previous report
+
+## Infrastructure
+Uses AWS SAM to build out the infrastructure for the project
+- EventBridge runs the Lambda function to generate the report on a schedule, set in template.yaml
+- Jira keys are pulled from Secrets Manager
+- The output is stored in an S3 bucket created by SAM
 
 ## Development
 
@@ -162,7 +175,7 @@ config/
   config.yaml                 Base config template
   config.local.yaml          Local overrides (committed, no secrets)
 test/
-  *.test.ts                   Unit tests with vitest (47 tests)
+  *.test.ts                   Unit tests with vitest
 ```
 
 ## Milestones
