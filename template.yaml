@@ -41,7 +41,7 @@ Resources:
           Properties:
             Schedule: cron(0 0 1 * ? *)
       MemorySize: 256 # Tends to use 150 MB, allow for slightly more memory if needed
-      Timeout: 10 # Tends to take 6 seconds, allow for slightly more time if needed
+      Timeout: 20 # Tends to take 6 seconds, allow for slightly more time if needed
 Globals:
   Function:
     LoggingConfig:

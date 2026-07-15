@@ -109,6 +109,8 @@ export class ReportGenerator {
       metricDataset.devThroughput = devThroughput;
       metricDataset.testingThroughput = testingThroughput;
       metricDataset.uatSignoffThroughput = uatSignoffThroughput;
+      metricDataset.pastQACount = await this.issueRepo.fetchCountPastStatus(sprint.id,throughputStagesEndStatuses.testing);
+      metricDataset.pastUATCount = await this.issueRepo.fetchCountPastStatus(sprint.id, throughputStagesEndStatuses.uatSignoff)
       datasets.set(sprint.id, dataset);
       metricDatasets.set(sprint.id, metricDataset);
 

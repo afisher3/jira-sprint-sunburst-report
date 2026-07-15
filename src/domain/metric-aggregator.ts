@@ -40,16 +40,11 @@ export class MetricAggregator {
 
         }
 
-
-
-        const qaReturnRate = Number(((pastQASum > 0 ? qaFailCount / pastQASum : 0)*100).toFixed(2));
-        const uatReturnRate = Number(((pastUATSum > 0 ? uatFailCount / pastUATSum : 0)*100).toFixed(2));
-
         return {
             qaFailCount: qaFailCount,
             uatFailCount: uatFailCount,
-            qaReturnRate: qaReturnRate,
-            uatReturnRate: uatReturnRate,
+            pastQACount: pastQASum,
+            pastUATCount: pastUATSum,
             refinementThroughput: -1, //flags if throughput has not been calculated yet, will be updated in report-generator.ts
             devThroughput: -1,
             testingThroughput: -1,

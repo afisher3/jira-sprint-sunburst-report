@@ -12,8 +12,9 @@ export class HtmlReportRenderer {
     this.logger.debug({ title: model.title }, 'Rendering HTML report');
 
     // Serialize datasets to JSON for client-side use
-    const datasetsJson = this.serializeDatasets(model);
+    const datasetsJson = this.serializeDatasets(model,false);
     const targetDatasetJson = model.targetDataset ? JSON.stringify(model.targetDataset) : 'null';
+    const metricDatasetsJson = this.serializeDatasets(model,true);
 
     // Generate sprint checkboxes
     const sprintCheckboxes = model.sprints.map((sprint, index) => {
@@ -214,12 +215,47 @@ export class HtmlReportRenderer {
         </div>
       </div>
     </div>
+    <div class="info-panel">
+      <h3>Throughput</h3>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">Refinement Throughput</div>
+          <div class="stat-value" id="refinement-throughput">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Dev Throughput</div>
+          <div class="stat-value" id="dev-throughput">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">QA Throughput</div>
+          <div class="stat-value" id="qa-throughput">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">UAT Signoff Throughput</div>
+          <div class="stat-value" id="uat-throughput">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-panel">
+      <h3>Return Rates</h3>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">QA Return Rate</div>
+          <div class="stat-value" id="qa-return-rate">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">UAT Return Rate</div>
+          <div class="stat-value" id="uat-return-rate">0</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
     // Sprint datasets embedded from server
     const datasets = ${datasetsJson};
     const targetDataset = ${targetDatasetJson};
+    const metricDatasets = ${metricDatasetsJson};
 
     // Aggregate multiple sprint datasets into one combined dataset
     function aggregateDatasets(sprintIds) {
@@ -231,6 +267,11 @@ export class HtmlReportRenderer {
       const selectedDatasets = sprintIds
         .map(id => datasets[id])
         .filter(ds => ds && ds.ids.length > 0);
+      
+      // Collect metrics datasets for selected sprints
+      const selectedMetricDatasets = sprintIds
+        .map(id => metricDatasets[id])
+        .filter(ds => ds);
 
       if (selectedDatasets.length === 0) {
         return null;
@@ -239,10 +280,17 @@ export class HtmlReportRenderer {
       // Build a map to aggregate values by (level1, level2)
       const aggregationMap = new Map();
       let totalIssueCount = 0;
+      let totalDevThroughput = 0;
+      let totalRefinementThroughput = 0;
+      let totalQAThroughput = 0;
+      let totalUATThroughput = 0;
+      let totalQAFailCount = 0;
+      let totalUATFailCount = 0;
+      let totalPastQACount = 0;
+      let totalPastUATCount = 0;
 
       for (const dataset of selectedDatasets) {
         totalIssueCount += dataset.issueCount;
-
         // Process each node in the dataset
         for (let i = 0; i < dataset.ids.length; i++) {
           const id = dataset.ids[i];
@@ -263,6 +311,17 @@ export class HtmlReportRenderer {
             });
           }
         }
+      }
+      
+      for (const metricDataset of selectedMetricDatasets){
+        totalDevThroughput += metricDataset.devThroughput;
+        totalRefinementThroughput += metricDataset.refinementThroughput;
+        totalQAThroughput += metricDataset.testingThroughput;
+        totalUATThroughput += metricDataset.uatSignoffThroughput;
+        totalQAFailCount += metricDataset.qaFailCount;
+        totalUATFailCount += metricDataset.uatFailCount;
+        totalPastQACount += metricDataset.pastQACount;
+        totalPastUATCount += metricDataset.pastUATCount;
       }
 
       // Convert map back to arrays
@@ -295,8 +354,14 @@ export class HtmlReportRenderer {
         labels,
         parents,
         values,
-        issueCount: totalIssueCount
-      };
+        issueCount: totalIssueCount,
+        devThroughput: totalDevThroughput,
+        refinementThroughput: totalRefinementThroughput,
+        qaThroughput: totalQAThroughput,
+        uatThroughput: totalUATThroughput,
+        qaReturnRate: ((totalQAFailCount / totalPastQACount) * 100).toFixed(2),
+        uatReturnRate: ((totalUATFailCount / totalPastUATCount) * 100).toFixed(2)
+        };
     }
 
     // Render sunburst chart for aggregated data
@@ -307,6 +372,12 @@ export class HtmlReportRenderer {
         document.getElementById('total-points').textContent = '0';
         document.getElementById('issue-count').textContent = '0';
         document.getElementById('category-count').textContent = '0';
+        document.getElementById('dev-throughput').textContent = '0';
+        document.getElementById('refinement-throughput').textContent = '0';
+        document.getElementById('qa-throughput').textContent = '0';
+        document.getElementById('uat-throughput').textContent = '0';
+        document.getElementById('qa-return-rate').textContent = '0';
+        document.getElementById('uat-return-rate').textContent = '0';
         return;
       }
 
@@ -325,6 +396,12 @@ export class HtmlReportRenderer {
       document.getElementById('total-points').textContent = totalPoints.toFixed(1);
       document.getElementById('issue-count').textContent = aggregatedDataset.issueCount;
       document.getElementById('category-count').textContent = categoryCount;
+      document.getElementById('dev-throughput').textContent = aggregatedDataset.devThroughput;
+      document.getElementById('refinement-throughput').textContent = aggregatedDataset.refinementThroughput;
+      document.getElementById('qa-throughput').textContent = aggregatedDataset.qaThroughput;
+      document.getElementById('uat-throughput').textContent = aggregatedDataset.uatThroughput;
+      document.getElementById('qa-return-rate').textContent = aggregatedDataset.qaReturnRate + '%';
+      document.getElementById('uat-return-rate').textContent = aggregatedDataset.uatReturnRate + '%';
 
       // Generate colors: each level 1 category gets a distinct color, level 2 children get lighter shades
       const colorPalette = [
@@ -494,13 +571,18 @@ export class HtmlReportRenderer {
     return html;
   }
 
-  private serializeDatasets(model: ReportModel): string {
+  private serializeDatasets(model: ReportModel, metrics: boolean): string {
     const datasetsObj: Record<number, unknown> = {};
-
-    for (const [sprintId, dataset] of model.datasets.entries()) {
-      datasetsObj[sprintId] = dataset;
+    if (metrics){
+      for (const [sprintId, dataset] of model.metricDatasets.entries()){
+        datasetsObj[sprintId] = dataset;
+      }
     }
-
+    else {
+      for (const [sprintId, dataset] of model.datasets.entries()) {
+        datasetsObj[sprintId] = dataset;
+      }
+    }
     return JSON.stringify(datasetsObj);
   }
 

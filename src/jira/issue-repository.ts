@@ -122,6 +122,29 @@ export class IssueRepository {
     return throughputCount;
   }
 
+  async fetchCountPastStatus(sprintId: number, status: string): Promise<number>{
+    // Fetch the count of issues that have passed a certain status during this sprint
+    const jql = `sprint = ${sprintId} AND Status WAS "${status}"`;
+    let nextPageToken: string | undefined = undefined;
+    let issueCount = 0;
+
+    while (true){
+      const response = await this.client.searchJql<JiraSearchResponse>(
+        jql,
+        ['key'],
+        nextPageToken
+      );
+
+      issueCount += response.issues.length;
+      
+      if (!response.nextPageToken){
+        break;
+      }
+      nextPageToken = response.nextPageToken;
+      }
+      return issueCount;
+    }
+
   private mapIssue(jiraIssue: JiraIssue): Issue {
     const fields = jiraIssue.fields;
 
