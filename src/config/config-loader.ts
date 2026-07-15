@@ -61,8 +61,10 @@ export class ConfigLoader {
         boardId: validatedConfig.jira.boardId,
         storyPointsFieldId: validatedConfig.jira.storyPointsFieldId,
         classificationFieldId: validatedConfig.jira.classificationFieldId,
-        qaFailCountFieldId: validatedConfig.jira.qaFailCountFieldId,
-        uatFailCountFieldId: validatedConfig.jira.uatFailCountFieldId,
+        lastStatusOfRefinement: validatedConfig.jira.lastStatusOfRefinement,
+        lastStatusOfDev: validatedConfig.jira.lastStatusOfDev,
+        lastStatusOfQA: validatedConfig.jira.lastStatusOfQA,
+        lastStatusOfUAT: validatedConfig.jira.lastStatusOfUAT,
         authType: validatedConfig.jira.authType,
         clientId: clientId.trim(),
         clientSecret: clientSecret.trim()

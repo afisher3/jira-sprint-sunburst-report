@@ -26,15 +26,15 @@ export class ReportGenerator {
   ) {
     this.renderer = new HtmlReportRenderer(logger.child({ component: 'HtmlReportRenderer' }));
 
-    //validate configuration
+    // Validate configuration
     if (!config.jira.baseUrl){
-      throw new Error("Jira URL not loaded into config")
+      throw new Error("Jira URL not loaded into config");
     }
     if (!config.jira.clientId){
-      throw new Error("Jira Client ID not loaded into config")
+      throw new Error("Jira Client ID not loaded into config");
     }
     if (!config.jira.clientSecret){
-      throw new Error("Jira Client Secret not loaded into config")
+      throw new Error("Jira Client Secret not loaded into config");
     }
     // Wire up Jira client and repositories
     this.jiraClient = new JiraClient(
@@ -70,14 +70,6 @@ export class ReportGenerator {
     // Discover all sprints on the board
     const allSprints = await this.sprintRepo.discoverSprints();
 
-    // Throughput statuses
-    const throughputStagesEndStatuses = {
-      refinement: 'ready for dev',
-      development: 'Ready for Testing',
-      testing: 'Ready for UAT',
-      uatSignoff: 'Resolved'
-    } as const;
-
     // Select the window
     const windowedSprints = this.sprintRepo.selectWindow(
       allSprints,
@@ -89,7 +81,7 @@ export class ReportGenerator {
 
     // Fetch issues for each sprint and build sunburst datasets
     const datasets = new Map();
-    const metricDatasets = new Map();
+    const metricDatasets = new Map<number,MetricDataset>();
 
     for (const sprint of windowedSprints) {
       const issues = await this.issueRepo.fetchBySprint(sprint.id);
@@ -98,23 +90,36 @@ export class ReportGenerator {
         this.config.report.showEmptyCategories
       );
   
-      const [refinementThroughput, devThroughput, testingThroughput, uatSignoffThroughput] = await Promise.all([
-        this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.refinement),
-        this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.development),
-        this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.testing),
-        this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.uatSignoff)
+      // Fetch data for metrics
+      const [qaFailCount,
+        uatFailCount,
+        pastQACount,
+        pastUATCount,
+        refinementThroughput,
+        devThroughput,
+        testingThroughput,
+        uatSignoffThroughput] = await Promise.all([
+        this.issueRepo.fetchReturnCount(sprint.id,this.config.jira.lastStatusOfQA),
+        this.issueRepo.fetchReturnCount(sprint.id, this.config.jira.lastStatusOfUAT),
+        this.issueRepo.fetchCountPastStatus(sprint.id,this.config.jira.lastStatusOfQA),
+        this.issueRepo.fetchCountPastStatus(sprint.id, this.config.jira.lastStatusOfUAT),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfRefinement),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfDev),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id,this.config.jira.lastStatusOfQA),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT)
       ]);
 
       const metricDataset = new MetricDataset(
-        await this.issueRepo.fetchReturnCount(sprint.id,throughputStagesEndStatuses.testing),
-        await this.issueRepo.fetchReturnCount(sprint.id, throughputStagesEndStatuses.uatSignoff),
-        await this.issueRepo.fetchCountPastStatus(sprint.id, throughputStagesEndStatuses.testing),
-        await this.issueRepo.fetchCountPastStatus(sprint.id, throughputStagesEndStatuses.uatSignoff),
+        qaFailCount,
+        uatFailCount,
+        pastQACount,
+        pastUATCount,
         refinementThroughput,
         devThroughput,
         testingThroughput,
         uatSignoffThroughput
       );
+
       datasets.set(sprint.id, dataset);
       metricDatasets.set(sprint.id, metricDataset);
 
@@ -155,18 +160,28 @@ export class ReportGenerator {
     // Render to HTML
     const html = this.renderer.render(model);
 
-    // Write to output
-    //await this.output.write(html, 'jira-sunburst-report');
+    // Write to S3
     const s3Client = new S3Client({});
+    const bucketName = process.env.BUCKET_NAME;
+
+    if (!bucketName){
+      throw new Error("BUCKET_NAME environment variable not set");
+    }
+
     const command = new PutObjectCommand({
-      Bucket: process.env.BUCKET_NAME,
+      Bucket: bucketName,
       Key: "metrics-report",
       Body:html,
       ContentType:"text/html",
       ContentDisposition:"inline"
     })
-    const response = await s3Client.send(command);
-    this.logger.info(response);
+
+    try{
+      await s3Client.send(command);
+      this.logger.info("Uploaded to S3");
+    } catch(error){
+      throw new Error("Failed to upload report to S3")
+    }
 
     this.logger.info('Report generation complete');
   }

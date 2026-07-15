@@ -21,6 +21,10 @@ export interface AppConfig {
     // OAuth credentials from env, never in YAML
     clientId: string;
     clientSecret: string;
+    lastStatusOfRefinement: string;
+    lastStatusOfDev: string;
+    lastStatusOfQA: string;
+    lastStatusOfUAT: string;
   };
   window: {
     closed: number;

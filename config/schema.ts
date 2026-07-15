@@ -9,9 +9,11 @@ export const JiraConfigSchema = z.object({
   boardId: z.number().int().positive('boardId must be a positive integer'),
   storyPointsFieldId: z.string().min(1, 'storyPointsFieldId must not be empty'),
   classificationFieldId: z.string().min(1, 'classificationFieldId must not be empty'),
-  qaFailCountFieldId: z.string().min(1, 'qaFailCountFieldId must not be empty'),
-  uatFailCountFieldId: z.string().min(1, 'uatFailCountFieldId must not be empty'),
   // OAuth authentication (clientId and clientSecret come from env vars)
+  lastStatusOfRefinement: z.string().min(1, 'lastStatusOfRefinement must not be empty'),
+  lastStatusOfDev: z.string().min(1, 'lastStatusOfDev must not be empty'),
+  lastStatusOfQA: z.string().min(1, 'lastStatusOfQA must not be empty'),
+  lastStatusOfUAT: z.string().min(1, 'lastStatusOfUAT must not be empty'),
   authType: z.enum(['oauth']).default('oauth')
 });
 

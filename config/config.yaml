@@ -8,8 +8,11 @@ jira:
   # Resolve these via GET /rest/api/3/field, then update with actual IDs
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10000
-  qaFailCountFieldId: customfield_10223
-  uatFailCountFieldId: customfield_10224
+  # Update these to match the status names in your workflow
+  lastStatusOfRefinement: ""
+  lastStatusOfDev: ""
+  lastStatusOfQA: ""
+  lastStatusOfUAT: ""
   authType: oauth
 
 window:
