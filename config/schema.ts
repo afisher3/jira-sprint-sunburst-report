@@ -33,29 +33,10 @@ export const ReportConfigSchema = z.object({
   targetClassifications: z.array(TargetClassificationSchema).optional().default([])
 });
 
-export const OutputConfigSchema = z.object({
-  type: z.enum(['local', 'confluence'], {
-    errorMap: () => ({ message: 'output.type must be "local" or "confluence"' })
-  }),
-  path: z.string().min(1, 'output.path must not be empty').optional()
-}).refine(
-  (data) => {
-    if (data.type === 'local' && !data.path) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: 'output.path is required when output.type is "local"',
-    path: ['path']
-  }
-);
-
 export const ConfigSchema = z.object({
   jira: JiraConfigSchema,
   window: WindowConfigSchema.default({ closed: 3, future: 3 }),
   report: ReportConfigSchema.default({ showEmptyCategories: false }),
-  output: OutputConfigSchema,
   logLevel: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info')
 });
 

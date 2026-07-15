@@ -15,8 +15,6 @@ export interface AppConfig {
     boardId: number;
     storyPointsFieldId: string;
     classificationFieldId: string;
-    qaFailCountFieldId: string;
-    uatFailCountFieldId: string;
     authType: 'oauth';
     // OAuth credentials from env, never in YAML
     clientId: string;
@@ -33,10 +31,6 @@ export interface AppConfig {
   report: {
     showEmptyCategories: boolean;
     targetClassifications: TargetClassification[];
-  };
-  output: {
-    type: 'local' | 'confluence';
-    path?: string;
   };
   logLevel: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 }

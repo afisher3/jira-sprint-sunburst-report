@@ -105,7 +105,7 @@ node dist/cli.js path/to/config.yaml
 npm test
 ```
 
-The report will be written to the path specified in `output.path` (default: `./out/report.html`).
+The report will be written to the S3 bucket created by SAM
 
 The generated HTML report shows:
 - Sprint selection via checkboxes (all active + 3 most recent closed + 3 next future sprints)

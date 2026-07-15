@@ -59,8 +59,4 @@ report:
       level2: "Manual Testing"
       percentage: 5
 
-output:
-  type: local
-  path: ./out/report.html
-
 logLevel: info  # trace | debug | info | warn | error | fatal
