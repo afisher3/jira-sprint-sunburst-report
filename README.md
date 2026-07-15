@@ -41,6 +41,13 @@ This tool automatically pulls sprint data from Jira Cloud and generates an inter
 
 **Bottom line**: Turns raw Jira data into actionable insights about where your engineering capacity is going, helping leadership make better strategic decisions about work prioritization.
 
+## Metrics Definitions
+- QA Return Rate: percent of issues that failed QA in the last 30 days
+  (number of issues that failed QA / number of issues that moved out of QA)*100
+- UAT Return Rate: percent of issues that failed UAT in the last 30 days
+  (number of issues that failed UAT / number of issues that moved out of UAT)*100
+- Throughput: number of issues that moved out of that stage in the last 30 days
+
 ## Current Status
 
 **All 3 Critical Milestones Complete** ✓
@@ -68,6 +75,10 @@ npm install
    - `jira.boardId` - The board ID to query
    - `jira.storyPointsFieldId` - Custom field ID for story points (e.g., customfield_10016)
    - `jira.classificationFieldId` - Custom field ID for classification (e.g., customfield_10100)
+   - `jira.lastStatusOfRefinement` - Last status in the refinement stage of your Jira workflow
+   - `jira.lastStatusOfDev` - Last status in the dev stage of your Jira workflow
+   - `jira.lastStatusOfQA` - Last status in the QA stage of your Jira workflow
+   - `jira.lastStatusOfUAT` - Last status in the UAT stage of your Jira workflow
 3. Set OAuth credentials:
    ```bash
    export JIRA_CLIENT_ID=your-oauth-client-id
@@ -136,7 +147,10 @@ src/
     classification-parser.ts       Parse cascading select field
     sunburst-aggregator.ts         Aggregate issues to sunburst data
     sunburst-dataset.ts            Plotly-compatible data structure
+    metric-dataset.ts              Data structure for metrics data
     target-sunburst-generator.ts   Generate target distribution from config
+  handlers/
+    lambda-handler.ts              Lambda entry point
   report/
     html-report-renderer.ts        Renders interactive HTML with Plotly
     report-model.ts                Data model for reports
