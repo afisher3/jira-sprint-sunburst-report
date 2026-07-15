@@ -54,8 +54,6 @@ export class ReportGenerator {
       this.jiraClient,
       config.jira.storyPointsFieldId,
       config.jira.classificationFieldId,
-      config.jira.qaFailCountFieldId,
-      config.jira.uatFailCountFieldId,
       logger.child({ component: 'IssueRepository' })
     );
   }

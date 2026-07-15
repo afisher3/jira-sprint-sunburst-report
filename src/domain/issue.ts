@@ -10,8 +10,6 @@ export interface Issue {
   status: string;                 // Current status (e.g., "In Progress")
   storyPoints: number;            // Story points (0 if not set)
   classification: Classification; // Parsed two-level classification
-  qaFailCount: number;            // Number of QA failures (0 if not set)
-  uatFailCount: number;           // Number of UAT failures (0 if not set)
 }
 
 /**

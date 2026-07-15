@@ -22,8 +22,6 @@ export class IssueRepository {
     private readonly client: JiraClient,
     private readonly storyPointsFieldId: string,
     private readonly classificationFieldId: string,
-    private readonly qaFailCountFieldId: string,
-    private readonly uatFailCountFieldId: string,
     private readonly logger: Logger
   ) {}
 
@@ -193,22 +191,12 @@ export class IssueRepository {
       status = statusRaw.name;
     }
 
-    // Extract QA fail count (default to 0 if not set)
-    const qaFailCountRaw = fields[this.qaFailCountFieldId];
-    const qaFailCount = typeof qaFailCountRaw === 'number' ? qaFailCountRaw : 0;
-
-    // Extract UAT fail count (default to 0 if not set)
-    const uatFailCountRaw = fields[this.uatFailCountFieldId];
-    const uatFailCount = typeof uatFailCountRaw === 'number' ? uatFailCountRaw : 0;
-
     return {
       key: jiraIssue.key,
       summary,
       status,
       storyPoints,
-      classification,
-      qaFailCount,
-      uatFailCount
+      classification
     };
   }
 }
