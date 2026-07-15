@@ -6,7 +6,7 @@ import { JiraClient } from '../jira/jira-client.js';
 import { SprintRepository } from '../jira/sprint-repository.js';
 import { IssueRepository } from '../jira/issue-repository.js';
 import { SunburstAggregator } from '../domain/sunburst-aggregator.js';
-import { MetricAggregator } from '../domain/metric-aggregator.js';
+import { MetricDataset } from '../domain/metric-dataset.js';
 import { TargetSunburstGenerator } from '../domain/target-sunburst-generator.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
@@ -97,20 +97,24 @@ export class ReportGenerator {
         issues,
         this.config.report.showEmptyCategories
       );
-    
-      const metricDataset = MetricAggregator.aggregate(issues);
+  
       const [refinementThroughput, devThroughput, testingThroughput, uatSignoffThroughput] = await Promise.all([
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.refinement),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.development),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.testing),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, throughputStagesEndStatuses.uatSignoff)
       ]);
-      metricDataset.refinementThroughput = refinementThroughput;
-      metricDataset.devThroughput = devThroughput;
-      metricDataset.testingThroughput = testingThroughput;
-      metricDataset.uatSignoffThroughput = uatSignoffThroughput;
-      metricDataset.pastQACount = await this.issueRepo.fetchCountPastStatus(sprint.id,throughputStagesEndStatuses.testing);
-      metricDataset.pastUATCount = await this.issueRepo.fetchCountPastStatus(sprint.id, throughputStagesEndStatuses.uatSignoff)
+
+      const metricDataset = new MetricDataset(
+        await this.issueRepo.fetchReturnCount(sprint.id,throughputStagesEndStatuses.testing),
+        await this.issueRepo.fetchReturnCount(sprint.id, throughputStagesEndStatuses.uatSignoff),
+        await this.issueRepo.fetchCountPastStatus(sprint.id, throughputStagesEndStatuses.testing),
+        await this.issueRepo.fetchCountPastStatus(sprint.id, throughputStagesEndStatuses.uatSignoff),
+        refinementThroughput,
+        devThroughput,
+        testingThroughput,
+        uatSignoffThroughput
+      );
       datasets.set(sprint.id, dataset);
       metricDatasets.set(sprint.id, metricDataset);
 

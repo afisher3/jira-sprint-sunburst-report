@@ -349,6 +349,9 @@ export class HtmlReportRenderer {
         values.push(entry.value);
       }
 
+      const qaReturnRate = totalPastQACount > 0 ? Number(((totalQAFailCount / totalPastQACount) * 100).toFixed(2)) : 0;
+      const uatReturnRate = totalPastUATCount > 0 ? Number(((totalUATFailCount / totalPastUATCount) * 100).toFixed(2)) : 0;
+
       return {
         ids,
         labels,
@@ -359,8 +362,8 @@ export class HtmlReportRenderer {
         refinementThroughput: totalRefinementThroughput,
         qaThroughput: totalQAThroughput,
         uatThroughput: totalUATThroughput,
-        qaReturnRate: ((totalQAFailCount / totalPastQACount) * 100).toFixed(2),
-        uatReturnRate: ((totalUATFailCount / totalPastUATCount) * 100).toFixed(2)
+        qaReturnRate: qaReturnRate,
+        uatReturnRate: uatReturnRate
         };
     }
 

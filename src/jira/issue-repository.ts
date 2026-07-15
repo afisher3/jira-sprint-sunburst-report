@@ -123,8 +123,8 @@ export class IssueRepository {
   }
 
   async fetchCountPastStatus(sprintId: number, status: string): Promise<number>{
-    // Fetch the count of issues that have passed a certain status during this sprint
-    const jql = `sprint = ${sprintId} AND Status WAS "${status}"`;
+    // Fetch the count of issues that have passed a certain status in the last 30 days for a given sprint
+    const jql = `sprint = ${sprintId} AND Status WAS "${status}" AFTER -30d`;
     let nextPageToken: string | undefined = undefined;
     let issueCount = 0;
 
@@ -144,6 +144,32 @@ export class IssueRepository {
       }
       return issueCount;
     }
+
+    async fetchReturnCount(sprintId: number, status: string): Promise<number>{
+      //Fetch the count of issues that have been reopened in the past 30 days
+      const jql = `sprint = ${sprintId} AND Status CHANGED from "${status}" TO "reopened"`
+      let nextPageToken: string | undefined = undefined;
+      let issueCount = 0;
+      while (true){
+        const response = await this.client.searchJql<JiraSearchResponse>(
+          jql,
+          ['key'],
+          nextPageToken
+        );
+
+        issueCount += response.issues.length;
+        
+        if (!response.nextPageToken){
+          break;
+        }
+        nextPageToken = response.nextPageToken;
+      }
+      if (issueCount == 0){
+        this.logger.info(`No issues found that were reopened after ${status}`)
+      }
+      return issueCount;
+    }
+  
 
   private mapIssue(jiraIssue: JiraIssue): Issue {
     const fields = jiraIssue.fields;
