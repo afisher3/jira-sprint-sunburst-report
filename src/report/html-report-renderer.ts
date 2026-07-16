@@ -12,9 +12,9 @@ export class HtmlReportRenderer {
     this.logger.debug({ title: model.title }, 'Rendering HTML report');
 
     // Serialize datasets to JSON for client-side use
-    const datasetsJson = this.serializeDatasets(model,false);
+    const datasetsJson = this.serializeDatasets(model);
     const targetDatasetJson = model.targetDataset ? JSON.stringify(model.targetDataset) : 'null';
-    const metricDatasetsJson = this.serializeDatasets(model,true);
+    const metricDatasetsJson = this.serializeMetricsDatasets(model);
 
     // Generate sprint checkboxes
     const sprintCheckboxes = model.sprints.map((sprint, index) => {
@@ -171,7 +171,7 @@ export class HtmlReportRenderer {
   <div class="container">
     <header>
       <h1>${this.escapeHtml(model.title)}</h1>
-      <p class="subtitle">Board ${model.boardId} • Generated ${new Date(model.generatedAt).toLocaleString()}</p>
+      <p class="subtitle">Board ${model.boardId} • Generated ${new Date(model.generatedAt).toLocaleString("en-US",{timeZone: "America/New_York",timeZoneName:"short"})}</p>
     </header>
 
     <div class="controls">
@@ -216,7 +216,7 @@ export class HtmlReportRenderer {
       </div>
     </div>
     <div class="info-panel">
-      <h3>Throughput</h3>
+      <h3>Throughput (Past 30 Days)</h3>
       <div class="stats">
         <div class="stat-card">
           <div class="stat-label">Refinement Throughput</div>
@@ -237,7 +237,7 @@ export class HtmlReportRenderer {
       </div>
     </div>
     <div class="info-panel">
-      <h3>Return Rates</h3>
+      <h3>Return Rates (Past 30 Days)</h3>
       <div class="stats">
         <div class="stat-card">
           <div class="stat-label">QA Return Rate</div>
@@ -574,17 +574,18 @@ export class HtmlReportRenderer {
     return html;
   }
 
-  private serializeDatasets(model: ReportModel, metrics: boolean): string {
+  private serializeDatasets(model: ReportModel): string {
     const datasetsObj: Record<number, unknown> = {};
-    if (metrics){
-      for (const [sprintId, dataset] of model.metricDatasets.entries()){
-        datasetsObj[sprintId] = dataset;
-      }
+    for (const [sprintId, dataset] of model.datasets.entries()) {
+      datasetsObj[sprintId] = dataset;
     }
-    else {
-      for (const [sprintId, dataset] of model.datasets.entries()) {
-        datasetsObj[sprintId] = dataset;
-      }
+    return JSON.stringify(datasetsObj);
+  }
+
+  private serializeMetricsDatasets(model: ReportModel): string {
+    const datasetsObj: Record<number, unknown> = {};
+    for (const [sprintId, dataset] of model.metricDatasets.entries()){
+      datasetsObj[sprintId] = dataset;
     }
     return JSON.stringify(datasetsObj);
   }

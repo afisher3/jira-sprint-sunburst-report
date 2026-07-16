@@ -1,14 +1,15 @@
-# Base configuration for Jira Sprint Sunburst Report
-# NEVER put secrets (OAuth credentials) in this file — use environment variables
+# Base configuration for Jira Sprint Sunburst and Delivery Health Report
+# NEVER put secrets (OAuth credentials) in this file
 # Required env vars: JIRA_CLIENT_ID, JIRA_CLIENT_SECRET
 
 jira:
+  # Update these values to match the Jira board and field configuration
   baseUrl: https://your-org.atlassian.net
   boardId: 1
   # Resolve these via GET /rest/api/3/field, then update with actual IDs
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10000
-  # Update these to match the status names in your workflow
+  # Update these to match the name of the final status in each stage of your workflow
   lastStatusOfRefinement: ""
   lastStatusOfDev: ""
   lastStatusOfQA: ""
@@ -17,10 +18,10 @@ jira:
 
 window:
   closed: 3   # Number of most recently closed sprints to include
-  future: 3   # Number of future sprints to include
+  future: 3   # Number of upcoming sprints to include
 
 report:
-  showEmptyCategories: false  # Show zero-valued categories in sunburst
+  showEmptyCategories: false  # Include categories with zero story points in the report
   # Target classification percentages for ideal distribution comparison
   # Adjust these percentages to match your organization's goals
   targetClassifications:
@@ -59,4 +60,4 @@ report:
       level2: "Manual Testing"
       percentage: 5
 
-logLevel: info  # trace | debug | info | warn | error | fatal
+logLevel: "info"  # trace | debug | info | warn | error | fatal

@@ -1,12 +1,12 @@
-# Jira Sprint Sunburst Report
+# Jira Sprint Sunburst and Delivery Metrics Report
 
-Automated tool that pulls data from Jira Cloud, rolls story points up by a two-level classification taxonomy, and produces an interactive HTML report with an interactive Plotly sunburst chart.
+Automated tool that pulls sprint data from Jira Cloud, rolls story points up by a two-level classification taxonomy, and produces an interactive HTML report with delivery metrics.
 
 ## Business Value
 
 ### What It Does
 
-This tool automatically pulls sprint data from Jira Cloud and generates an interactive HTML report with visual sunburst charts showing how your team's story points are distributed across a two-level classification taxonomy (e.g., "App Dev → New Feature", "Infrastructure → Security").
+This tool pulls sprint data from Jira Cloud and generates an HTML report with visual sunburst charts showing how your team's story points are distributed across a two-level classification taxonomy and other delivery health metrics.
 
 ### Key Business Value
 
@@ -63,8 +63,9 @@ This tool automatically pulls sprint data from Jira Cloud and generates an inter
 ## Prerequisites
 
 - Node.js 22+ (LTS)
+- AWS SAM CLI
 - Jira Cloud account with OAuth 2.0 credentials
-- JIRA_CLIENT_ID and JIRA_CLIENT_SECRET environment variables
+- JIRA_CLIENT_ID and JIRA_CLIENT_SECRET stored in Secrets Manager
 
 ## Installation
 
@@ -84,27 +85,23 @@ npm install
    - `jira.lastStatusOfDev` - Last status in the dev stage of your Jira workflow
    - `jira.lastStatusOfQA` - Last status in the QA stage of your Jira workflow
    - `jira.lastStatusOfUAT` - Last status in the UAT stage of your Jira workflow
-3. Set OAuth credentials:
-   ```bash
-   export JIRA_CLIENT_ID=your-oauth-client-id
-   export JIRA_CLIENT_SECRET=your-oauth-client-secret
-   ```
+3. Update SECRET_NAME in `template.yaml` to match the name of the Secrets Manager secret with your Jira keys
 
 Never commit secrets to config files. OAuth credentials must come from the environment.
 
-## Usage
+## Usage & Development
 
 ```bash
+
+#Install dependencies
+npm install
+
 # Build the project
 npm run build
 
-# Run with default config (config/config.local.yaml)
-export JIRA_CLIENT_ID=your-client-id
-export JIRA_CLIENT_SECRET=your-client-secret
-node dist/cli.js
-
-# Run with custom config
-node dist/cli.js path/to/config.yaml
+# Deploy to SAM
+sam build
+sam deploy --guided
 
 # Run tests
 npm test
@@ -118,24 +115,13 @@ The generated HTML report shows:
 - Summary stats: total story points, issues, and categories
 
 ## Output
-The HTML report will be written to the S3 bucket specified by the environment variable BUCKET_NAME under the key 'metrics-report'
-Each run overrides the previous report
+Each run writes the generated HTML report to the S3 bucket specified by BUCKET_NAME using the key 'metrics-report'. The latest run overrides the previous report.
 
 ## Infrastructure
-Uses AWS SAM to build out the infrastructure for the project
-- EventBridge runs the Lambda function to generate the report on a schedule, set in template.yaml
-- Jira keys are pulled from Secrets Manager
-- The output is stored in an S3 bucket created by SAM
-
-## Development
-
-```bash
-# Run tests in watch mode
-npm run test:watch
-
-# Build
-npm run build
-```
+AWS SAM provisions the application infrastructure, including:
+- Lambda function for scheduled report generation
+- S3 bucket for report storage
+- Secrets Manager integration for Jira credentials
 
 ## Project Structure
 
@@ -168,12 +154,12 @@ src/
     html-report-renderer.ts        Renders interactive HTML with Plotly
     report-model.ts                Data model for reports
     output/
-      output-target.ts             Output interface
-      local-file-output.ts         Writes to local filesystem
+      output-target.ts             Output interface (legacy - not used when outputting to S3)
+      local-file-output.ts         Writes to local filesystem (legacy - not used when outputting to S3)
 config/
   schema.ts                   Zod validation schema
   config.yaml                 Base config template
-  config.local.yaml          Local overrides (committed, no secrets)
+  config.local.yaml          Local overrides (no secrets, gitignored)
 test/
   *.test.ts                   Unit tests with vitest
 ```
