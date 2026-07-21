@@ -14,8 +14,6 @@ const client = new SecretsManagerClient({
   region: "us-east-1",
 });
 
-let response;
-
 
 export type JiraKeys = {
     client_id: string,
@@ -24,7 +22,7 @@ export type JiraKeys = {
 }
 
 export const getJiraKeys = async (logger: Logger): Promise<JiraKeys> => {
-    response = await client.send(
+    const response = await client.send(
         new GetSecretValueCommand({
         SecretId: secret_name,
         })

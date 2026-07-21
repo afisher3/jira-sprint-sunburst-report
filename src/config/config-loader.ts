@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { parse as parseYaml } from 'yaml';
 import { ConfigSchema, type ConfigType } from '../../config/schema.js';
-import { type JiraKeys } from '../handlers/lambda-handler.js'
+import { type JiraKeys } from '../handlers/lambda-handler.js';
 import type { AppConfig } from './app-config.js';
 
 /**
@@ -38,12 +38,12 @@ export class ConfigLoader {
     }
 
     const validatedConfig: ConfigType = parseResult.data;
-    validateCredentials(jiraKeys);
+    const validatedKeys = validateCredentials(jiraKeys);
 
     // Build AppConfig
     const appConfig: AppConfig = {
       jira: {
-        baseUrl: jiraKeys.base_url.trim(),
+        baseUrl: validatedKeys.base_url,
         boardId: validatedConfig.jira.boardId,
         storyPointsFieldId: validatedConfig.jira.storyPointsFieldId,
         classificationFieldId: validatedConfig.jira.classificationFieldId,
@@ -52,8 +52,8 @@ export class ConfigLoader {
         lastStatusOfQA: validatedConfig.jira.lastStatusOfQA,
         lastStatusOfUAT: validatedConfig.jira.lastStatusOfUAT,
         authType: validatedConfig.jira.authType,
-        clientId: jiraKeys.client_id.trim(),
-        clientSecret: jiraKeys.client_secret.trim()
+        clientId: validatedKeys.client_id,
+        clientSecret: validatedKeys.client_secret
       },
       window: {
         closed: validatedConfig.window.closed,
@@ -70,23 +70,31 @@ export class ConfigLoader {
   }
 }
 
-  function validateCredentials(jiraKeys: JiraKeys): void {
+  function validateCredentials(jiraKeys: JiraKeys): JiraKeys {
     // Resolve OAuth credentials from Secrets Manager
-    const clientId = jiraKeys.client_id;
-    if (!clientId || clientId.trim() === '') {
+    const clientId = jiraKeys.client_id.trim();
+    if (!clientId || clientId == '') {
       throw new Error('JIRA_CLIENT_ID not set or not pulled from Secrets Manager');
     }
 
-    const clientSecret = jiraKeys.client_secret;
-    if (!clientSecret || clientSecret.trim() === '') {
+    const clientSecret = jiraKeys.client_secret.trim();
+    if (!clientSecret || clientSecret === '') {
       throw new Error('JIRA_CLIENT_SECRET not set or not pulled from Secrets Manager');
     }
 
-    if (!jiraKeys.base_url || jiraKeys.base_url.trim()===''){
+    const baseUrl = jiraKeys.base_url.trim();
+    if (!baseUrl|| baseUrl === ''){
       throw new Error ('BASE_URL not set or not pulled from Secrets Manager');
     }
 
-    if (!URL.canParse(jiraKeys.base_url)){
+    
+    if (!URL.canParse(baseUrl)){
       throw new Error('BASE_URL must be a valid URL');
+    }
+
+    return {
+      client_id: clientId,
+      client_secret: clientSecret,
+      base_url: baseUrl
     }
   }

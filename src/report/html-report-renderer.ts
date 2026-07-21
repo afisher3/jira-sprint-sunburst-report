@@ -14,7 +14,7 @@ export class HtmlReportRenderer {
     // Serialize datasets to JSON for client-side use
     const datasetsJson = this.serializeDatasets(model);
     const targetDatasetJson = model.targetDataset ? JSON.stringify(model.targetDataset) : 'null';
-    const metricDatasetsJson = this.serializeMetricsDatasets(model);
+    const metricsDatasetsJson = this.serializeMetricsDatasets(model);
 
     // Generate sprint checkboxes
     const sprintCheckboxes = model.sprints.map((sprint, index) => {
@@ -255,7 +255,33 @@ export class HtmlReportRenderer {
     // Sprint datasets embedded from server
     const datasets = ${datasetsJson};
     const targetDataset = ${targetDatasetJson};
-    const metricDatasets = ${metricDatasetsJson};
+    const metricDatasets = ${metricsDatasetsJson};
+
+    // Generate colors: each level 1 category gets a distinct color, level 2 children get lighter shades
+      const colorPalette = [
+        '#0052cc', // Blue
+        '#36b37e', // Green
+        '#ff5630', // Red
+        '#ffab00', // Yellow
+        '#6554c0', // Purple
+        '#00b8d9', // Cyan
+        '#ff8b00', // Orange
+        '#00875a', // Teal
+        '#5243aa', // Indigo
+        '#bf2600'  // Dark Red
+      ];
+
+      // Assign known categories colors
+      const colorMap = new Map([
+        ['App Dev', '#0052cc'],
+        ['Ops', '#36b37e'],
+        ['Security', '#ff5630'],
+        ['Infrastructure', '#ffab00'],
+        ['Knowledge Management', '#6554c0'],
+        ['Documentation', '#00b8d9'],
+        ['Testing', '#ff8b00']
+      ]);
+
 
     // Aggregate multiple sprint datasets into one combined dataset
     function aggregateDatasets(sprintIds) {
@@ -406,31 +432,6 @@ export class HtmlReportRenderer {
       document.getElementById('qa-return-rate').textContent = aggregatedDataset.qaReturnRate + '%';
       document.getElementById('uat-return-rate').textContent = aggregatedDataset.uatReturnRate + '%';
 
-      // Generate colors: each level 1 category gets a distinct color, level 2 children get lighter shades
-      const colorPalette = [
-        '#0052cc', // Blue
-        '#36b37e', // Green
-        '#ff5630', // Red
-        '#ffab00', // Yellow
-        '#6554c0', // Purple
-        '#00b8d9', // Cyan
-        '#ff8b00', // Orange
-        '#00875a', // Teal
-        '#5243aa', // Indigo
-        '#bf2600'  // Dark Red
-      ];
-
-      // Assign known categories colors
-      const colorMap = new Map([
-        ['App Dev', '#0052cc'],
-        ['Ops', '#36b37e'],
-        ['Security', '#ff5630'],
-        ['Infrastructure', '#ffab00'],
-        ['Knowledge Management', '#6554c0'],
-        ['Documentation', '#00b8d9'],
-        ['Testing', '#ff8b00']
-      ]);
-
       const colors = generateColors(aggregatedDataset, colorPalette, colorMap);
 
       // Plotly sunburst
@@ -474,22 +475,6 @@ export class HtmlReportRenderer {
       if (!targetDataset || targetDataset.ids.length === 0) {
         return;
       }
-
-      const colorPalette = [
-        '#0052cc', '#36b37e', '#ff5630', '#ffab00', '#6554c0',
-        '#00b8d9', '#ff8b00', '#00875a', '#5243aa', '#bf2600'
-      ];
-
-      // Assign known categories colors
-      const colorMap = new Map([
-        ['App Dev', '#0052cc'],
-        ['Ops', '#36b37e'],
-        ['Security', '#ff5630'],
-        ['Infrastructure', '#ffab00'],
-        ['Knowledge Management', '#6554c0'],
-        ['Documentation', '#00b8d9'],
-        ['Testing', '#ff8b00']
-      ]);
 
       const colors = generateColors(targetDataset, colorPalette, colorMap);
 
