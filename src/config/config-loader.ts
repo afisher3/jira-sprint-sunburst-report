@@ -1,18 +1,18 @@
 import { readFileSync } from 'fs';
 import { parse as parseYaml } from 'yaml';
 import { ConfigSchema, type ConfigType } from '../../config/schema.js';
-import {type JiraKeys} from '../handlers/lambda-handler.js'
+import { type JiraKeys } from '../handlers/lambda-handler.js'
 import type { AppConfig } from './app-config.js';
 
 /**
- * ConfigLoader — loads and validates YAML config, resolves secrets from environment.
+ * ConfigLoader — loads and validates YAML config, resolves secrets from the Lambda handler.
  * Fails loudly with clear messages on validation errors or missing secrets.
  */
 export class ConfigLoader {
   /**
    * Load configuration from a YAML file path.
    * @param filePath - Absolute or relative path to the YAML config file
-   * @returns Validated AppConfig with secrets resolved from environment
+   * @returns Validated AppConfig with credentials resolved from jiraKeys
    * @throws Error if file not found, YAML invalid, schema validation fails, or secrets missing
    */
   static load(filePath: string, jiraKeys: JiraKeys): AppConfig {
@@ -38,26 +38,12 @@ export class ConfigLoader {
     }
 
     const validatedConfig: ConfigType = parseResult.data;
-
-    // Resolve OAuth credentials from environment
-    const clientId = jiraKeys.client_id;
-    if (!clientId || clientId.trim() === '') {
-      throw new Error('JIRA_CLIENT_ID is required but not set or empty');
-    }
-
-    const clientSecret = jiraKeys.client_secret;
-    if (!clientSecret || clientSecret.trim() === '') {
-      throw new Error('JIRA_CLIENT_SECRET is required but not set or empty');
-    }
-
-    if (!jiraKeys.base_url || jiraKeys.base_url.trim()===''){
-      throw new Error ('Jira Base URL Missing in Config')
-    }
+    validateCredentials(jiraKeys);
 
     // Build AppConfig
     const appConfig: AppConfig = {
       jira: {
-        baseUrl: jiraKeys.base_url,
+        baseUrl: jiraKeys.base_url.trim(),
         boardId: validatedConfig.jira.boardId,
         storyPointsFieldId: validatedConfig.jira.storyPointsFieldId,
         classificationFieldId: validatedConfig.jira.classificationFieldId,
@@ -66,8 +52,8 @@ export class ConfigLoader {
         lastStatusOfQA: validatedConfig.jira.lastStatusOfQA,
         lastStatusOfUAT: validatedConfig.jira.lastStatusOfUAT,
         authType: validatedConfig.jira.authType,
-        clientId: clientId.trim(),
-        clientSecret: clientSecret.trim()
+        clientId: jiraKeys.client_id.trim(),
+        clientSecret: jiraKeys.client_secret.trim()
       },
       window: {
         closed: validatedConfig.window.closed,
@@ -83,3 +69,24 @@ export class ConfigLoader {
     return appConfig;
   }
 }
+
+  function validateCredentials(jiraKeys: JiraKeys): void {
+    // Resolve OAuth credentials from Secrets Manager
+    const clientId = jiraKeys.client_id;
+    if (!clientId || clientId.trim() === '') {
+      throw new Error('JIRA_CLIENT_ID not set or not pulled from Secrets Manager');
+    }
+
+    const clientSecret = jiraKeys.client_secret;
+    if (!clientSecret || clientSecret.trim() === '') {
+      throw new Error('JIRA_CLIENT_SECRET not set or not pulled from Secrets Manager');
+    }
+
+    if (!jiraKeys.base_url || jiraKeys.base_url.trim()===''){
+      throw new Error ('BASE_URL not set or not pulled from Secrets Manager');
+    }
+
+    if (!URL.canParse(jiraKeys.base_url)){
+      throw new Error('BASE_URL must be a valid URL');
+    }
+  }

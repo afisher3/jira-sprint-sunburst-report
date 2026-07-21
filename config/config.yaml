@@ -1,15 +1,14 @@
 # Base configuration for Jira Sprint Sunburst and Delivery Health Report
 # NEVER put secrets (OAuth credentials) in this file
-# Required env vars: JIRA_CLIENT_ID, JIRA_CLIENT_SECRET
+# Jira credentials are pulled from AWS Secrets Manager
 
 jira:
-  # Update these values to match the Jira board and field configuration
-  baseUrl: https://your-org.atlassian.net
+  # Update the board ID to match the Jira board and field configuration
   boardId: 1
   # Resolve these via GET /rest/api/3/field, then update with actual IDs
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10000
-  # Update these to match the name of the final status in each stage of your workflow
+  # Update these to match the exact name of the final status in each stage of your workflow
   lastStatusOfRefinement: ""
   lastStatusOfDev: ""
   lastStatusOfQA: ""

@@ -57,7 +57,7 @@ export const getJiraKeys = async (logger: Logger): Promise<JiraKeys> => {
 export const handler = async (): Promise<void> => {
     LoggerFactory.init('info');
     const logger = LoggerFactory.child('LambdaHandler');
-    logger.error("Getting Jira Keys");
+    logger.info("Getting Jira Keys");
     const jiraKeys = getJiraKeys(logger);
     const config = ConfigLoader.load('config/config.local.yaml', await jiraKeys);
     const reportGenerator = new ReportGenerator(config, logger);
