@@ -420,7 +420,18 @@ export class HtmlReportRenderer {
         '#bf2600'  // Dark Red
       ];
 
-      const colors = generateColors(aggregatedDataset, colorPalette);
+      // Assign known categories colors
+      const colorMap = new Map([
+        ['App Dev', '#0052cc'],
+        ['Ops', '#36b37e'],
+        ['Security', '#ff5630'],
+        ['Infrastructure', '#ffab00'],
+        ['Knowledge Management', '#6554c0'],
+        ['Documentation', '#00b8d9'],
+        ['Testing', '#ff8b00']
+      ]);
+
+      const colors = generateColors(aggregatedDataset, colorPalette, colorMap);
 
       // Plotly sunburst
       const data = [{
@@ -469,7 +480,18 @@ export class HtmlReportRenderer {
         '#00b8d9', '#ff8b00', '#00875a', '#5243aa', '#bf2600'
       ];
 
-      const colors = generateColors(targetDataset, colorPalette);
+      // Assign known categories colors
+      const colorMap = new Map([
+        ['App Dev', '#0052cc'],
+        ['Ops', '#36b37e'],
+        ['Security', '#ff5630'],
+        ['Infrastructure', '#ffab00'],
+        ['Knowledge Management', '#6554c0'],
+        ['Documentation', '#00b8d9'],
+        ['Testing', '#ff8b00']
+      ]);
+
+      const colors = generateColors(targetDataset, colorPalette, colorMap);
 
       const data = [{
         type: 'sunburst',
@@ -507,13 +529,17 @@ export class HtmlReportRenderer {
     }
 
     // Helper function to generate colors for a dataset
-    function generateColors(dataset, colorPalette) {
+    function generateColors(dataset, colorPalette, colorMap) {
       const colors = [];
       const level1Categories = dataset.ids.filter((_, i) => dataset.parents[i] === '');
       const level1ColorMap = new Map();
 
       level1Categories.forEach((cat, idx) => {
-        level1ColorMap.set(cat, colorPalette[idx % colorPalette.length]);
+        if (colorMap.has(cat)){
+          level1ColorMap.set(cat,colorMap.get(cat));
+        } else {
+          level1ColorMap.set(cat, colorPalette[idx % colorPalette.length]);
+        }
       });
 
       // Assign colors to all nodes
