@@ -28,7 +28,7 @@ export class SunburstAggregator {
 
     for (const issue of issues) {
       const { level1, level2 } = issue.classification;
-      const categoryId = `${level1}|${level2}`;
+      const categoryId = getCategoryId(level1,level2);
 
       const existing = categoryMap.get(categoryId);
       if (existing) {
@@ -41,9 +41,13 @@ export class SunburstAggregator {
       }
     }
 
+    const sortedCategoryMap = new Map(
+      [...categoryMap].sort((a, b) => a[0].localeCompare(b[0]))
+    );
+
     // Extract unique level1 categories and their totals
     const level1Map = new Map<string, number>();
-    for (const category of categoryMap.values()) {
+    for (const category of sortedCategoryMap.values()) {
       const existing = level1Map.get(category.key.level1) || 0;
       level1Map.set(category.key.level1, existing + category.storyPoints);
     }
@@ -63,9 +67,9 @@ export class SunburstAggregator {
     }
 
     // Add level 2 nodes
-    for (const category of categoryMap.values()) {
+    for (const category of sortedCategoryMap.values()) {
       const { level1, level2 } = category.key;
-      const id = `${level1}|${level2}`;
+      const id = getCategoryId(level1,level2);
 
       ids.push(id);
       labels.push(level2);
@@ -81,4 +85,9 @@ export class SunburstAggregator {
       issueCount: issues.length
     };
   }
+}
+
+// Helper function to format category ID's
+export function getCategoryId(level1: string, level2: string): string {
+  return `${level1}|${level2}`
 }

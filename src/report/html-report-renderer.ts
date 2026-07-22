@@ -442,6 +442,7 @@ export class HtmlReportRenderer {
         parents: aggregatedDataset.parents,
         values: aggregatedDataset.values,
         branchvalues: 'total',
+        sort: false,
         marker: {
           colors: colors,
           line: { width: 2, color: '#fff' }
@@ -485,6 +486,7 @@ export class HtmlReportRenderer {
         parents: targetDataset.parents,
         values: targetDataset.values,
         branchvalues: 'total',
+        sort: false,  // don't automatically sort by the largest section so both charts can be in the same order
         marker: {
           colors: colors,
           line: { width: 2, color: '#fff' }
