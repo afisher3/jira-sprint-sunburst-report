@@ -1,11 +1,11 @@
 import { readFileSync } from 'fs';
 import { parse as parseYaml } from 'yaml';
 import { ConfigSchema, type ConfigType } from '../../config/schema.js';
-import { type JiraKeys } from '../handlers/lambda-handler.js';
+import type { JiraKeys } from '../handlers/lambda-handler.js';
 import type { AppConfig } from './app-config.js';
 
 /**
- * ConfigLoader — loads and validates YAML config, resolves secrets from the Lambda handler.
+ * ConfigLoader — loads and validates YAML config, merges with Jira credentials.
  * Fails loudly with clear messages on validation errors or missing secrets.
  */
 export class ConfigLoader {
@@ -70,21 +70,21 @@ export class ConfigLoader {
   }
 }
 
-  function validateCredentials(jiraKeys: JiraKeys): JiraKeys {
+function validateCredentials(jiraKeys: JiraKeys): JiraKeys {
     // Resolve OAuth credentials from Secrets Manager
     const clientId = jiraKeys.client_id.trim();
-    if (!clientId || clientId == '') {
+    if (!clientId) {
       throw new Error('JIRA_CLIENT_ID not set or not pulled from Secrets Manager');
     }
 
     const clientSecret = jiraKeys.client_secret.trim();
-    if (!clientSecret || clientSecret === '') {
+    if (!clientSecret) {
       throw new Error('JIRA_CLIENT_SECRET not set or not pulled from Secrets Manager');
     }
 
     const baseUrl = jiraKeys.base_url.trim();
-    if (!baseUrl|| baseUrl === ''){
-      throw new Error ('BASE_URL not set or not pulled from Secrets Manager');
+    if (!baseUrl){
+      throw new Error('BASE_URL not set or not pulled from Secrets Manager');
     }
 
     

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { writeFileSync, mkdirSync, rmSync } from 'fs';
+import { writeFileSync, mkdirSync, rmSync, write } from 'fs';
 import { join } from 'path';
 import { ConfigLoader } from '../src/config/config-loader.js';
-import { JiraKeys } from '../src/handlers/lambda-handler.js';
+import type { JiraKeys } from '../src/handlers/lambda-handler.js';
 
 const TEST_DIR = join(process.cwd(), 'test', 'tmp');
 
@@ -12,7 +12,7 @@ const testJiraKeys: JiraKeys = {
   base_url: "https://testbaseurl.com"
 }
 
-function writeConfig(contents: string){
+function writeConfigFile(contents: string){
   const configPath = join(TEST_DIR, 'config.yaml');
   writeFileSync(configPath, contents);
   return configPath;
@@ -23,10 +23,10 @@ jira:
   boardId: 123
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10100
-  lastStatusOfRefinement: test_status
-  lastStatusOfDev: test_status
-  lastStatusOfQA: test_status
-  lastStatusOfUAT: test_status
+  lastStatusOfRefinement: test_status_refinement
+  lastStatusOfDev: test_status_dev
+  lastStatusOfQA: test_status_qa
+  lastStatusOfUAT: test_status_uat
 window:
   closed: 3
   future: 3
@@ -52,7 +52,7 @@ describe('ConfigLoader', () => {
   });
 
   it('should load valid config with all required fields', () => {
-    const configPath = writeConfig(validConfig);
+    const configPath = writeConfigFile(validConfig);
 
     const config = ConfigLoader.load(configPath,testJiraKeys);
 
@@ -60,6 +60,12 @@ describe('ConfigLoader', () => {
     expect(config.jira.clientId).toBe('test_client_id');
     expect(config.jira.clientSecret).toBe('test_client_secret');
     expect(config.jira.authType).toBe('oauth');
+    expect(config.jira.lastStatusOfRefinement).toBe('test_status_refinement');
+    expect(config.jira.lastStatusOfDev).toBe('test_status_dev');
+    expect(config.jira.lastStatusOfQA).toBe('test_status_qa');
+    expect(config.jira.lastStatusOfUAT).toBe('test_status_uat');
+    expect(config.jira.storyPointsFieldId).toBe('customfield_10016');
+    expect(config.jira.classificationFieldId).toBe('customfield_10100')
     expect(config.jira.boardId).toBe(123);
     expect(config.window.closed).toBe(3);
     expect(config.window.future).toBe(3);
@@ -86,20 +92,20 @@ output:
   path: ./out/report.html
 logLevel: info
 `;
-    const configPath = writeConfig(invalidConfig);
+    const configPath = writeConfigFile(invalidConfig);
 
     expect(() => ConfigLoader.load(configPath,testJiraKeys)).toThrow('Configuration validation failed');
     expect(() => ConfigLoader.load(configPath,testJiraKeys)).toThrow('jira.boardId');
   });
 
   it('should fail when baseUrl is not a valid URL', () => {
-    const invalidJiraKeys : JiraKeys = {
+    const invalidJiraKeys: JiraKeys = {
       client_id: "test_client_id",
       client_secret: "test_client_secret",
       base_url: "notaurl"
     }
 
-    const configPath = writeConfig(validConfig);
+    const configPath = writeConfigFile(validConfig);
 
     expect(() => ConfigLoader.load(configPath,invalidJiraKeys)).toThrow('BASE_URL must be a valid URL');
   });
@@ -115,7 +121,7 @@ jira:
   lastStatusOfQA: test_status
   lastStatusOfUAT: test_status
 `;
-    const configPath = writeConfig(minimalConfig);
+    const configPath = writeConfigFile(minimalConfig);
 
     const config = ConfigLoader.load(configPath,testJiraKeys);
 
@@ -127,36 +133,34 @@ jira:
   });
 
   it('should fail when client_id is missing', () => {
-    const jiraKeysMissingClientID = {
+    const jiraKeysMissingClientID: JiraKeys = {
       client_id: " ",
       client_secret: "test-secret",
       base_url: "https://testurl.com"
     }
-    const configPath = join(TEST_DIR, 'validConfig.yaml');
-    writeFileSync(configPath, validConfig);
+    const configPath = writeConfigFile(validConfig);
 
     expect(() => ConfigLoader.load(configPath, jiraKeysMissingClientID)).toThrow('JIRA_CLIENT_ID not set or not pulled from Secrets Manager');
   });
 
     it('should fail when client_secret is missing', () => {
-    const jiraKeysMissingClientSecret = {
+    const jiraKeysMissingClientSecret: JiraKeys = {
       client_id: "test-client-id",
       client_secret: " ",
       base_url: "https://testurl.com"
     }
-    const configPath = writeConfig(validConfig)
+    const configPath = writeConfigFile(validConfig)
 
     expect(() => ConfigLoader.load(configPath, jiraKeysMissingClientSecret)).toThrow('JIRA_CLIENT_SECRET not set or not pulled from Secrets Manager');
   });
 
     it('should fail when base_url is missing', () => {
-    const jiraKeysMissingBaseURL = {
+    const jiraKeysMissingBaseURL: JiraKeys = {
       client_id: "test-client-id",
       client_secret: "test-client-secret",
       base_url: " "
     }
-    const configPath = join(TEST_DIR, 'validConfig.yaml');
-    writeFileSync(configPath, validConfig);
+    const configPath = writeConfigFile(validConfig);
 
     expect(() => ConfigLoader.load(configPath, jiraKeysMissingBaseURL)).toThrow('BASE_URL not set or not pulled from Secrets Manager');
   });
@@ -182,7 +186,7 @@ jira:
           showEmptyCategories:false
         logLevel:info
         `;
-    const configPath = writeConfig(malformedConfig);
+    const configPath = writeConfigFile(malformedConfig);
     expect(() => ConfigLoader.load(configPath,testJiraKeys)).toThrow(`Failed to parse YAML in ${configPath}`)
   });
 
@@ -203,7 +207,7 @@ report:
   showEmptyCategories: false
 logLevel: info
     `
-    const configPath = writeConfig(nonSchemaConfig);
+    const configPath = writeConfigFile(nonSchemaConfig);
     expect(()=> ConfigLoader.load(configPath,testJiraKeys)).toThrow('Configuration validation failed');
   });
 
@@ -213,8 +217,7 @@ logLevel: info
       client_secret: " test_client_secret ",
       base_url: " https://testurl.com "
     }
-    const configPath = join(TEST_DIR, 'validConfig.yaml');
-    writeFileSync(configPath, validConfig);
+    const configPath = writeConfigFile(validConfig);
     const config = ConfigLoader.load(configPath,jiraKeysWithSpaces);
     expect(config.jira.baseUrl).toBe('https://testurl.com');
     expect(config.jira.clientId).toBe("test_client_id");

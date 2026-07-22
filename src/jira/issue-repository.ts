@@ -34,7 +34,7 @@ export class IssueRepository {
     this.logger.info({ sprintId }, 'Fetching issues for sprint');
 
     const jql = `sprint = ${sprintId}`;
-    const fields = ['key', 'summary', 'status', this.storyPointsFieldId, this.classificationFieldId, this.qaFailCountFieldId, this.uatFailCountFieldId];
+    const fields = ['key', 'summary', 'status', this.storyPointsFieldId, this.classificationFieldId];
 
     const allIssues: Issue[] = [];
     let nextPageToken: string | undefined = undefined;
