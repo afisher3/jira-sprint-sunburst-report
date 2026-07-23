@@ -34,7 +34,7 @@ export class IssueRepository {
     this.logger.info({ sprintId }, 'Fetching issues for sprint');
 
     const jql = `sprint = ${sprintId}`;
-    const fields = ['key', 'summary', 'status', this.storyPointsFieldId, this.classificationFieldId];
+    const fields = ['key', 'summary', 'status', this.storyPointsFieldId, this.classificationFieldId, 'issuetype'];
 
     const allIssues: Issue[] = [];
     let nextPageToken: string | undefined = undefined;
@@ -61,7 +61,8 @@ export class IssueRepository {
           storyPointsValue: firstIssue.fields?.[this.storyPointsFieldId],
           classificationValue: classValue,
           classificationValueType: typeof classValue,
-          classificationValueJson: JSON.stringify(classValue)
+          classificationValueJson: JSON.stringify(classValue),
+          issuetype: firstIssue.fields?.['issuetype']
         }, 'Sample issue structure from API');
       }
 
@@ -93,23 +94,22 @@ export class IssueRepository {
   }
 
   async fetchThroughputBySprintStage(sprintId: number, toStatus: string): Promise<number> {
-    // Fetch the count of issues that transitioned to a specific status in the last 30 days for a given sprint
-    const jql = `sprint = ${sprintId} AND Status changed to "${toStatus}" after -30d`;
+    // Fetch the count of issues that transitioned to a specific status for a given sprint
+    const jql = `sprint = ${sprintId} AND Status changed to "${toStatus}"`;
     let nextPageToken: string | undefined = undefined;
-    let throughputCount = 0;
+    //let throughputCount = 0;
+    const allIssues: Issue[] = [];
 
     while (true) {
 
       const response = await this.client.searchJql<JiraSearchResponse>(
         jql,
-        ['key', 'status'],
+        ['key', 'status', this.storyPointsFieldId],
         nextPageToken
       );
 
-      // Debug: log raw response
-      //this.logger.info("Throughput Count: " + response.issues.length);
-
-      throughputCount += response.issues.length;
+      const mappedIssues = response.issues.map(issue => this.mapIssue(issue));
+      allIssues.push(...mappedIssues);
 
       if (!response.nextPageToken) {
         break;
@@ -117,12 +117,13 @@ export class IssueRepository {
 
       nextPageToken = response.nextPageToken;
     }
-    return throughputCount;
+    return allIssues.reduce((sum, i) => sum + i.storyPoints, 0);
   }
 
-  async fetchCountPastStatus(sprintId: number, status: string): Promise<number>{
-    // Fetch the count of issues that have passed a certain status in the last 30 days for a given sprint
-    const jql = `sprint = ${sprintId} AND Status WAS "${status}" AFTER -30d`;
+  async fetchCountPastQA(sprintId: number): Promise<number>{
+    // Fetch the count of issues that have passed testing for a given sprint
+
+    const jql = `sprint = ${sprintId} AND Status CHANGED FROM ("Ready for Testing", "In Testing") TO ("Ready for UAT", "In UAT", "Resolved", "Closed", "Reopened")`;
     let nextPageToken: string | undefined = undefined;
     let issueCount = 0;
 
@@ -140,12 +141,62 @@ export class IssueRepository {
       }
       nextPageToken = response.nextPageToken;
       }
+
+      this.logger.info({sprintId,issueCount}, "Issues past QA");
       return issueCount;
     }
 
-    async fetchReturnCount(sprintId: number, status: string): Promise<number>{
-      //Fetch the count of issues that have been reopened in the past 30 days
-      const jql = `sprint = ${sprintId} AND Status CHANGED from "${status}" TO "reopened"`
+    async fetchCountPastUAT(sprintId: number): Promise<number>{
+      // Fetch the count of issues that have passed UAT in a given sprint
+      const jql = `sprint = ${sprintId} AND status CHANGED FROM (${this}, "In UAT") TO ("Resolved", "Closed", "Reopened")`;
+      let nextPageToken: string | undefined = undefined;
+      let issueCount = 0;
+      while (true){
+        const response = await this.client.searchJql<JiraSearchResponse>(
+          jql,
+          ['key'],
+          nextPageToken
+        );
+
+        issueCount += response.issues.length;
+        
+        if (!response.nextPageToken){
+          break;
+        }
+        nextPageToken = response.nextPageToken;
+        }
+
+        this.logger.info({sprintId,issueCount}, "Issues past UAT");
+        return issueCount;
+    }
+
+    async fetchReturnCountQA(sprintId: number): Promise<number>{
+      //Fetch the count of issues that have been reopened
+      const jql = `sprint = ${sprintId} AND Status CHANGED FROM ("Ready for Testing", "In Testing") TO "reopened"`;
+      let nextPageToken: string | undefined = undefined;
+      let issueCount = 0;
+      while (true){
+        const response = await this.client.searchJql<JiraSearchResponse>(
+          jql,
+          ['key'],
+          nextPageToken
+        );
+
+        issueCount += response.issues.length;
+        
+        if (!response.nextPageToken){
+          break;
+        }
+        nextPageToken = response.nextPageToken;
+      }
+      this.logger.info(`${issueCount} issues found that were reopened after QA`)
+      
+      return issueCount;
+    }
+
+    async fetchReturnCountUAT(sprintId: number): Promise<number>{
+      //Fetch the count of issues that have been reopened
+      const jql = `sprint = ${sprintId} AND Status CHANGED FROM ("Ready for UAT", "In UAT") TO "reopened"`;
       let nextPageToken: string | undefined = undefined;
       let issueCount = 0;
       while (true){
@@ -163,10 +214,11 @@ export class IssueRepository {
         nextPageToken = response.nextPageToken;
       }
       if (issueCount == 0){
-        this.logger.info(`No issues found that were reopened after ${status}`)
+        this.logger.info(`No issues found that were reopened after UAT`)
       }
       return issueCount;
     }
+  
   
 
   private mapIssue(jiraIssue: JiraIssue): Issue {

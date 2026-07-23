@@ -216,7 +216,7 @@ export class HtmlReportRenderer {
       </div>
     </div>
     <div class="info-panel">
-      <h3>Throughput (Past 30 Days)</h3>
+      <h3>Throughput (in Story Points)</h3>
       <div class="stats">
         <div class="stat-card">
           <div class="stat-label">Refinement Throughput</div>
@@ -237,7 +237,7 @@ export class HtmlReportRenderer {
       </div>
     </div>
     <div class="info-panel">
-      <h3>Return Rates (Past 30 Days)</h3>
+      <h3>Return Rates</h3>
       <div class="stats">
         <div class="stat-card">
           <div class="stat-label">QA Return Rate</div>
