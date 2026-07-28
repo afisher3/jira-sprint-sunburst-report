@@ -181,23 +181,6 @@ export class HtmlReportRenderer {
       </div>
     </div>
 
-    <div class="charts-grid">
-      <div class="chart-container">
-        <h3>Actual Distribution</h3>
-        <div id="sunburst" class="sunburst-chart"></div>
-        <div id="empty-state" class="empty-state" style="display: none;">
-          <h2>No Data Available</h2>
-          <p>Select at least one sprint with story points assigned.</p>
-        </div>
-      </div>
-      ${hasTarget ? `
-      <div class="chart-container">
-        <h3>Target Distribution</h3>
-        <div id="target-sunburst" class="sunburst-chart"></div>
-      </div>
-      ` : ''}
-    </div>
-
     <div class="info-panel">
       <h3>Sprint Details</h3>
       <div class="stats">
@@ -215,6 +198,7 @@ export class HtmlReportRenderer {
         </div>
       </div>
     </div>
+
     <div class="info-panel">
       <h3>Throughput (in Story Points)</h3>
       <div class="stats">
@@ -248,6 +232,23 @@ export class HtmlReportRenderer {
           <div class="stat-value" id="uat-return-rate">0</div>
         </div>
       </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-container">
+        <h3>Actual Distribution</h3>
+        <div id="sunburst" class="sunburst-chart"></div>
+        <div id="empty-state" class="empty-state" style="display: none;">
+          <h2>No Data Available</h2>
+          <p>Select at least one sprint with story points assigned.</p>
+        </div>
+      </div>
+      ${hasTarget ? `
+      <div class="chart-container">
+        <h3>Target Distribution</h3>
+        <div id="target-sunburst" class="sunburst-chart"></div>
+      </div>
+      ` : ''}
     </div>
   </div>
 
@@ -522,8 +523,10 @@ export class HtmlReportRenderer {
       const level1ColorMap = new Map();
 
       level1Categories.forEach((cat, idx) => {
-        if (colorMap.has(cat)){
-          level1ColorMap.set(cat,colorMap.get(cat));
+        label = dataset.label;
+        cat = cat.trim();
+        if (colorMap.has(label)){
+          level1ColorMap.set(cat,colorMap.get(label));
         } else {
           level1ColorMap.set(cat, colorPalette[idx % colorPalette.length]);
         }

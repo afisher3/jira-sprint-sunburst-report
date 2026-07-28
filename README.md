@@ -53,6 +53,20 @@ This tool pulls sprint data from Jira Cloud and generates an HTML report with vi
   If no issues have moved past UAT, it will be reported as zero
 - Throughput: number of issues that reached the final status of each stage in the last 30 days
 
+## Current Processes
+Currently, there are 3 workflows used for DevOps tickets:
+
+Story Workflow (the "Dev" of DevOps)
+Used for issue types "Story" (new code) and "Bug" (fixes), includes 15 status options
+
+Task & Spike Workflow (the "Ops" of DevOps)
+Used for issue types "Task" (account setup, config updates, etc) and "Spike" (research and decision making), only includes 13 status options because QA is not included
+
+Vulnerability Workflow (the Security work of DevOps)
+Used for issue type "Vulnerability" (resolving specific security findings, typically with updates to 3rd party libraries), very similar to Task & Spike flow except there is "Under Investigation" status that happens before "Refined", also "Deferred" is not an option
+
+Each status option has 1 to many paths to other options, so there could be several paths we haven't accounted for in the metrics. Any changes to the above workflows will require updates to the dashboard
+
 ## Current Status
 
 **All 3 Critical Milestones Complete** ✓

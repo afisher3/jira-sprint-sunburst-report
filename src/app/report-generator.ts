@@ -97,12 +97,12 @@ export class ReportGenerator {
         devThroughput,
         testingThroughput,
         uatSignoffThroughput] = await Promise.all([
-        this.issueRepo.fetchReturnCountQA(sprint.id),
-        this.issueRepo.fetchReturnCountUAT(sprint.id),
+        this.issueRepo.fetchReturnCountQA(sprint.id, this.config.jira.qaFailCountFieldId),
+        this.issueRepo.fetchReturnCountUAT(sprint.id, this.config.jira.uatFailCountFieldId),
         this.issueRepo.fetchCountPastQA(sprint.id),
         this.issueRepo.fetchCountPastUAT(sprint.id),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfRefinement),
-        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfDev),
+        this.issueRepo.fetchDevThroughput(sprint.id),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id,this.config.jira.lastStatusOfQA),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT)
       ]);

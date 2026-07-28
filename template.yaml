@@ -36,7 +36,7 @@ Resources:
               - secretsmanager:GetSecretValue
             Resource: arn:aws:secretsmanager:us-east-1:652871367610:secret:metrics-dashboard/jira-X1KLGv
       MemorySize: 256 # Tends to use 150 MB, allow for slightly more memory if needed
-      Timeout: 20 # Tends to take 6 seconds, allow for slightly more time if needed
+      Timeout: 180 # Tends to take 20 seconds, allow for slightly more time if needed
 Globals:
   Function:
     LoggingConfig:
