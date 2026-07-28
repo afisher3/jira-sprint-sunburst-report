@@ -7,8 +7,25 @@ import { SprintRepository } from '../jira/sprint-repository.js';
 import { IssueRepository } from '../jira/issue-repository.js';
 import { SunburstAggregator } from '../domain/sunburst-aggregator.js';
 import { MetricDataset } from '../domain/metric-dataset.js';
+import type { StageSummaryDataset } from '../domain/stage-summary-dataset.js';
+import type { Issue } from '../domain/issue.js';
 import { TargetSunburstGenerator } from '../domain/target-sunburst-generator.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+
+/**
+ * Counts issues currently sitting in the "Refined" and "Ready for Dev" statuses.
+ */
+function summarizeStages(
+  issues: Issue[],
+  refinedStatusName: string,
+  readyForDevStatusName: string
+): StageSummaryDataset {
+  return {
+    totalIssues: issues.length,
+    refinedCount: issues.filter((issue) => issue.status === refinedStatusName).length,
+    readyForDevCount: issues.filter((issue) => issue.status === readyForDevStatusName).length
+  };
+}
 
 /**
  * ReportGenerator — orchestrates the entire report generation flow.
@@ -80,6 +97,7 @@ export class ReportGenerator {
     // Fetch issues for each sprint and build sunburst datasets
     const datasets = new Map();
     const metricDatasets = new Map<number,MetricDataset>();
+    const stageSummaryDatasets = new Map<number, StageSummaryDataset>();
 
     for (const sprint of windowedSprints) {
       const issues = await this.issueRepo.fetchBySprint(sprint.id);
@@ -87,7 +105,13 @@ export class ReportGenerator {
         issues,
         this.config.report.showEmptyCategories
       );
-  
+
+      const stageSummaryDataset = summarizeStages(
+        issues,
+        this.config.jira.refinedStatusName,
+        this.config.jira.readyForDevStatusName
+      );
+
       // Fetch data for metrics
       const [qaFailCount,
         uatFailCount,
@@ -120,6 +144,7 @@ export class ReportGenerator {
 
       datasets.set(sprint.id, dataset);
       metricDatasets.set(sprint.id, metricDataset);
+      stageSummaryDatasets.set(sprint.id, stageSummaryDataset);
 
       this.logger.info({
         sprintId: sprint.id,
@@ -150,6 +175,7 @@ export class ReportGenerator {
       sprints: windowedSprints,
       datasets,
       metricDatasets,
+      stageSummaryDatasets,
       targetDataset
     };
 

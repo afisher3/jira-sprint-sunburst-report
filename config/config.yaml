@@ -15,6 +15,9 @@ jira:
   lastStatusOfDev: ""
   lastStatusOfQA: ""
   lastStatusOfUAT: ""
+  # Update these to match the exact status names used for the Sprint Summary by Stages counters
+  refinedStatusName: ""
+  readyForDevStatusName: ""
   authType: oauth
 
 window:

@@ -25,6 +25,8 @@ export interface AppConfig {
     lastStatusOfDev: string;
     lastStatusOfQA: string;
     lastStatusOfUAT: string;
+    refinedStatusName: string;
+    readyForDevStatusName: string;
   };
   window: {
     closed: number;

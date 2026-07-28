@@ -51,6 +51,8 @@ export class ConfigLoader {
         lastStatusOfDev: validatedConfig.jira.lastStatusOfDev,
         lastStatusOfQA: validatedConfig.jira.lastStatusOfQA,
         lastStatusOfUAT: validatedConfig.jira.lastStatusOfUAT,
+        refinedStatusName: validatedConfig.jira.refinedStatusName,
+        readyForDevStatusName: validatedConfig.jira.readyForDevStatusName,
         authType: validatedConfig.jira.authType,
         clientId: validatedKeys.client_id,
         clientSecret: validatedKeys.client_secret

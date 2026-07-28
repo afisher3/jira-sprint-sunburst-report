@@ -15,6 +15,7 @@ export class HtmlReportRenderer {
     const datasetsJson = this.serializeDatasets(model);
     const targetDatasetJson = model.targetDataset ? JSON.stringify(model.targetDataset) : 'null';
     const metricsDatasetsJson = this.serializeMetricsDatasets(model);
+    const stageSummaryDatasetsJson = this.serializeStageSummaryDatasets(model);
 
     // Generate sprint checkboxes
     const sprintCheckboxes = model.sprints.map((sprint, index) => {
@@ -182,6 +183,24 @@ export class HtmlReportRenderer {
     </div>
 
     <div class="info-panel">
+      <h3>Sprint Summary by Stages</h3>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">Total Tickets</div>
+          <div class="stat-value" id="stage-total-tickets">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Refined</div>
+          <div class="stat-value" id="stage-refined-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Ready for Dev</div>
+          <div class="stat-value" id="stage-ready-for-dev-count">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-panel">
       <h3>Sprint Details</h3>
       <div class="stats">
         <div class="stat-card">
@@ -257,6 +276,7 @@ export class HtmlReportRenderer {
     const datasets = ${datasetsJson};
     const targetDataset = ${targetDatasetJson};
     const metricDatasets = ${metricsDatasetsJson};
+    const stageSummaryDatasets = ${stageSummaryDatasetsJson};
 
     // Generate colors: each level 1 category gets a distinct color, level 2 children get lighter shades
       const colorPalette = [
@@ -300,6 +320,11 @@ export class HtmlReportRenderer {
         .map(id => metricDatasets[id])
         .filter(ds => ds);
 
+      // Collect stage summary datasets for selected sprints
+      const selectedStageSummaryDatasets = sprintIds
+        .map(id => stageSummaryDatasets[id])
+        .filter(ds => ds);
+
       if (selectedDatasets.length === 0) {
         return null;
       }
@@ -315,6 +340,9 @@ export class HtmlReportRenderer {
       let totalUATFailCount = 0;
       let totalPastQACount = 0;
       let totalPastUATCount = 0;
+      let totalStageTickets = 0;
+      let totalRefinedCount = 0;
+      let totalReadyForDevCount = 0;
 
       for (const dataset of selectedDatasets) {
         totalIssueCount += dataset.issueCount;
@@ -349,6 +377,12 @@ export class HtmlReportRenderer {
         totalUATFailCount += metricDataset.uatFailCount;
         totalPastQACount += metricDataset.pastQACount;
         totalPastUATCount += metricDataset.pastUATCount;
+      }
+
+      for (const stageSummaryDataset of selectedStageSummaryDatasets){
+        totalStageTickets += stageSummaryDataset.totalIssues;
+        totalRefinedCount += stageSummaryDataset.refinedCount;
+        totalReadyForDevCount += stageSummaryDataset.readyForDevCount;
       }
 
       // Convert map back to arrays
@@ -390,7 +424,10 @@ export class HtmlReportRenderer {
         qaThroughput: totalQAThroughput,
         uatThroughput: totalUATThroughput,
         qaReturnRate: qaReturnRate,
-        uatReturnRate: uatReturnRate
+        uatReturnRate: uatReturnRate,
+        stageTotalTickets: totalStageTickets,
+        stageRefinedCount: totalRefinedCount,
+        stageReadyForDevCount: totalReadyForDevCount
         };
     }
 
@@ -408,6 +445,9 @@ export class HtmlReportRenderer {
         document.getElementById('uat-throughput').textContent = '0';
         document.getElementById('qa-return-rate').textContent = '0';
         document.getElementById('uat-return-rate').textContent = '0';
+        document.getElementById('stage-total-tickets').textContent = '0';
+        document.getElementById('stage-refined-count').textContent = '0';
+        document.getElementById('stage-ready-for-dev-count').textContent = '0';
         return;
       }
 
@@ -432,6 +472,9 @@ export class HtmlReportRenderer {
       document.getElementById('uat-throughput').textContent = aggregatedDataset.uatThroughput;
       document.getElementById('qa-return-rate').textContent = aggregatedDataset.qaReturnRate + '%';
       document.getElementById('uat-return-rate').textContent = aggregatedDataset.uatReturnRate + '%';
+      document.getElementById('stage-total-tickets').textContent = aggregatedDataset.stageTotalTickets;
+      document.getElementById('stage-refined-count').textContent = aggregatedDataset.stageRefinedCount;
+      document.getElementById('stage-ready-for-dev-count').textContent = aggregatedDataset.stageReadyForDevCount;
 
       const colors = generateColors(aggregatedDataset, colorPalette, colorMap);
 
@@ -601,6 +644,14 @@ export class HtmlReportRenderer {
   private serializeMetricsDatasets(model: ReportModel): string {
     const datasetsObj: Record<number, unknown> = {};
     for (const [sprintId, dataset] of model.metricDatasets.entries()){
+      datasetsObj[sprintId] = dataset;
+    }
+    return JSON.stringify(datasetsObj);
+  }
+
+  private serializeStageSummaryDatasets(model: ReportModel): string {
+    const datasetsObj: Record<number, unknown> = {};
+    for (const [sprintId, dataset] of model.stageSummaryDatasets.entries()){
       datasetsObj[sprintId] = dataset;
     }
     return JSON.stringify(datasetsObj);
