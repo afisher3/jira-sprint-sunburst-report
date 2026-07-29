@@ -7,3 +7,5 @@ coverage/
 .env
 .claude/settings.local.json
 config/config.local.yaml
+.aws-sam/
+AWSCLIV2.pkg

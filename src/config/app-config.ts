@@ -15,10 +15,18 @@ export interface AppConfig {
     boardId: number;
     storyPointsFieldId: string;
     classificationFieldId: string;
+    qaFailCountFieldId: string;
+    uatFailCountFieldId: string;
     authType: 'oauth';
     // OAuth credentials from env, never in YAML
     clientId: string;
     clientSecret: string;
+    lastStatusOfRefinement: string;
+    lastStatusOfDev: string;
+    lastStatusOfQA: string;
+    lastStatusOfUAT: string;
+    refinedStatusName: string;
+    readyForDevStatusName: string;
   };
   window: {
     closed: number;
@@ -29,7 +37,7 @@ export interface AppConfig {
     targetClassifications: TargetClassification[];
   };
   output: {
-    type: 'local' | 'confluence';
+    type: 'local' | 's3';
     path?: string;
   };
   logLevel: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';

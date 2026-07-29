@@ -1,5 +1,7 @@
 import type { Sprint } from '../domain/sprint.js';
 import type { SunburstDataset } from '../domain/sunburst-dataset.js';
+import type { MetricDataset } from '../domain/metric-dataset.js';
+import type { StageSummaryDataset } from '../domain/stage-summary-dataset.js';
 
 /**
  * ReportModel — the data structure passed to HtmlReportRenderer.
@@ -12,5 +14,7 @@ export interface ReportModel {
   boardId: number;
   sprints: Sprint[];                               // Windowed sprint list for menu
   datasets: Map<number, SunburstDataset>;          // Sunburst data per sprint ID
+  metricDatasets: Map<number, MetricDataset>;       // Metric data per sprint ID
+  stageSummaryDatasets: Map<number, StageSummaryDataset>; // Stage ticket counts per sprint ID
   targetDataset?: SunburstDataset;                 // Target/ideal distribution
 }

@@ -2,12 +2,14 @@ import type { Logger } from 'pino';
 import type { AppConfig } from '../config/app-config.js';
 import { HtmlReportRenderer } from '../report/html-report-renderer.js';
 import type { ReportModel } from '../report/report-model.js';
-import type { OutputTarget } from '../report/output/output-target.js';
 import { JiraClient } from '../jira/jira-client.js';
 import { SprintRepository } from '../jira/sprint-repository.js';
 import { IssueRepository } from '../jira/issue-repository.js';
 import { SunburstAggregator } from '../domain/sunburst-aggregator.js';
+import { MetricDataset } from '../domain/metric-dataset.js';
+import type { StageSummaryDataset } from '../domain/stage-summary-dataset.js';
 import { TargetSunburstGenerator } from '../domain/target-sunburst-generator.js';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 /**
  * ReportGenerator — orchestrates the entire report generation flow.
@@ -21,16 +23,25 @@ export class ReportGenerator {
 
   constructor(
     private readonly config: AppConfig,
-    private readonly output: OutputTarget,
     private readonly logger: Logger
   ) {
     this.renderer = new HtmlReportRenderer(logger.child({ component: 'HtmlReportRenderer' }));
 
+    // Validate configuration
+    if (!config.jira.baseUrl){
+      throw new Error("Jira URL not loaded into config");
+    }
+    if (!config.jira.clientId){
+      throw new Error("Jira Client ID not loaded into config");
+    }
+    if (!config.jira.clientSecret){
+      throw new Error("Jira Client Secret not loaded into config");
+    }
     // Wire up Jira client and repositories
     this.jiraClient = new JiraClient(
-      config.jira.baseUrl,
-      config.jira.clientId,
-      config.jira.clientSecret,
+      config.jira.baseUrl.trim(),
+      config.jira.clientId.trim(),
+      config.jira.clientSecret.trim(),
       logger.child({ component: 'JiraClient' })
     );
 
@@ -49,10 +60,14 @@ export class ReportGenerator {
   }
 
   /**
-   * Generate and write the report.
+   * Generate the report.
+   * When output.type is 'local', the rendered HTML is returned directly instead of being
+   * written to disk — a Lambda execution environment (real AWS or `sam local invoke`) only
+   * allows writes under /tmp, and that path isn't retrievable after the container exits, so
+   * callers running locally are expected to persist the returned HTML themselves.
    * Milestone 3: full flow with issues, classification, aggregation, and sunburst rendering.
    */
-  async generate(): Promise<void> {
+  async generate(): Promise<string | void> {
     this.logger.info('Starting report generation');
 
     // Discover all sprints on the board
@@ -69,6 +84,8 @@ export class ReportGenerator {
 
     // Fetch issues for each sprint and build sunburst datasets
     const datasets = new Map();
+    const metricDatasets = new Map<number,MetricDataset>();
+    const stageSummaryDatasets = new Map<number, StageSummaryDataset>();
 
     for (const sprint of windowedSprints) {
       const issues = await this.issueRepo.fetchBySprint(sprint.id);
@@ -77,7 +94,49 @@ export class ReportGenerator {
         this.config.report.showEmptyCategories
       );
 
+      // Fetch data for metrics
+      const [qaFailCount,
+        uatFailCount,
+        pastQACount,
+        pastUATCount,
+        refinementThroughput,
+        devThroughput,
+        testingThroughput,
+        uatSignoffThroughput,
+        refinedCount,
+        readyForDevCount] = await Promise.all([
+        this.issueRepo.fetchReturnCountQA(sprint.id, this.config.jira.qaFailCountFieldId),
+        this.issueRepo.fetchReturnCountUAT(sprint.id, this.config.jira.uatFailCountFieldId),
+        this.issueRepo.fetchCountPastQA(sprint.id),
+        this.issueRepo.fetchCountPastUAT(sprint.id),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfRefinement),
+        this.issueRepo.fetchDevThroughput(sprint.id),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id,this.config.jira.lastStatusOfQA),
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT),
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.refinedStatusName),
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.readyForDevStatusName)
+      ]);
+
+      const stageSummaryDataset: StageSummaryDataset = {
+        totalIssues: issues.length,
+        refinedCount,
+        readyForDevCount
+      };
+
+      const metricDataset = new MetricDataset(
+        qaFailCount,
+        uatFailCount,
+        pastQACount,
+        pastUATCount,
+        refinementThroughput,
+        devThroughput,
+        testingThroughput,
+        uatSignoffThroughput
+      );
+
       datasets.set(sprint.id, dataset);
+      metricDatasets.set(sprint.id, metricDataset);
+      stageSummaryDatasets.set(sprint.id, stageSummaryDataset);
 
       this.logger.info({
         sprintId: sprint.id,
@@ -107,6 +166,8 @@ export class ReportGenerator {
       boardId: this.config.jira.boardId,
       sprints: windowedSprints,
       datasets,
+      metricDatasets,
+      stageSummaryDatasets,
       targetDataset
     };
 
@@ -115,8 +176,33 @@ export class ReportGenerator {
     // Render to HTML
     const html = this.renderer.render(model);
 
-    // Write to output
-    await this.output.write(html, 'jira-sunburst-report');
+    if (this.config.output.type === 'local') {
+      this.logger.info('Report generation complete (returning HTML for local output)');
+      return html;
+    }
+
+    // Write to S3
+    const s3Client = new S3Client({});
+    const bucketName = process.env.BUCKET_NAME;
+
+    if (!bucketName){
+      throw new Error("BUCKET_NAME environment variable not set");
+    }
+
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: "metrics-report",
+      Body:html,
+      ContentType:"text/html",
+      ContentDisposition:"inline"
+    })
+
+    try{
+      await s3Client.send(command);
+      this.logger.info("Uploaded to S3");
+    } catch(error){
+      throw new Error("Failed to upload report to S3")
+    }
 
     this.logger.info('Report generation complete');
   }

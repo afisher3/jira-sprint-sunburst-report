@@ -1,12 +1,12 @@
-# Jira Sprint Sunburst Report
+# Jira Sprint Sunburst and Delivery Metrics Report
 
-Automated tool that pulls data from Jira Cloud, rolls story points up by a two-level classification taxonomy, and produces an interactive HTML report with an interactive Plotly sunburst chart.
+Automated tool that pulls sprint data from Jira Cloud, rolls story points up by a two-level classification taxonomy, and produces an interactive HTML report with delivery metrics.
 
 ## Business Value
 
 ### What It Does
 
-This tool automatically pulls sprint data from Jira Cloud and generates an interactive HTML report with visual sunburst charts showing how your team's story points are distributed across a two-level classification taxonomy (e.g., "App Dev → New Feature", "Infrastructure → Security").
+This tool pulls sprint data from Jira Cloud and generates an HTML report with visual sunburst charts showing how your team's story points are distributed across a two-level classification taxonomy and other delivery health metrics.
 
 ### Key Business Value
 
@@ -30,6 +30,9 @@ This tool automatically pulls sprint data from Jira Cloud and generates an inter
 - **Easy to understand**: Color-coded hierarchy makes it clear where points are allocated
 - **Exportable**: HTML reports can be shared, embedded in Confluence, or presented to executives
 
+**5. Delivery Health**
+- **Flow metrics**: Throughput per stage and return rate surface bottlenecks
+
 ### Example Use Cases
 
 - **Sprint Planning**: "Are we allocating enough points to security work this quarter?"
@@ -41,6 +44,29 @@ This tool automatically pulls sprint data from Jira Cloud and generates an inter
 
 **Bottom line**: Turns raw Jira data into actionable insights about where your engineering capacity is going, helping leadership make better strategic decisions about work prioritization.
 
+## Metrics Definitions
+- QA Return Rate: percent of issues that failed QA in the last 30 days
+  (number of issues that failed QA / number of issues that moved out of QA)*100
+  If no issues have moved past QA, it will be reported as zero
+- UAT Return Rate: percent of issues that failed UAT in the last 30 days
+  (number of issues that failed UAT / number of issues that moved out of UAT)*100
+  If no issues have moved past UAT, it will be reported as zero
+- Throughput: number of issues that reached the final status of each stage in the last 30 days
+
+## Current Processes
+Currently, there are 3 workflows used for DevOps tickets:
+
+Story Workflow (the "Dev" of DevOps)
+Used for issue types "Story" (new code) and "Bug" (fixes), includes 15 status options
+
+Task & Spike Workflow (the "Ops" of DevOps)
+Used for issue types "Task" (account setup, config updates, etc) and "Spike" (research and decision making), only includes 13 status options because QA is not included
+
+Vulnerability Workflow (the Security work of DevOps)
+Used for issue type "Vulnerability" (resolving specific security findings, typically with updates to 3rd party libraries), very similar to Task & Spike flow except there is "Under Investigation" status that happens before "Refined", also "Deferred" is not an option
+
+Each status option has 1 to many paths to other options, so there could be several paths we haven't accounted for in the metrics. Any changes to the above workflows will require updates to the dashboard
+
 ## Current Status
 
 **All 3 Critical Milestones Complete** ✓
@@ -50,9 +76,10 @@ This tool automatically pulls sprint data from Jira Cloud and generates an inter
 
 ## Prerequisites
 
-- Node.js 20+ (LTS)
+- Node.js 22+ (LTS)
+- AWS SAM CLI
 - Jira Cloud account with OAuth 2.0 credentials
-- JIRA_CLIENT_ID and JIRA_CLIENT_SECRET environment variables
+- JIRA_CLIENT_ID and JIRA_CLIENT_SECRET stored in Secrets Manager
 
 ## Installation
 
@@ -68,33 +95,31 @@ npm install
    - `jira.boardId` - The board ID to query
    - `jira.storyPointsFieldId` - Custom field ID for story points (e.g., customfield_10016)
    - `jira.classificationFieldId` - Custom field ID for classification (e.g., customfield_10100)
-3. Set OAuth credentials:
-   ```bash
-   export JIRA_CLIENT_ID=your-oauth-client-id
-   export JIRA_CLIENT_SECRET=your-oauth-client-secret
-   ```
+   - `jira.lastStatusOfRefinement` - Last status in the refinement stage of your Jira workflow
+   - `jira.lastStatusOfDev` - Last status in the dev stage of your Jira workflow
+   - `jira.lastStatusOfQA` - Last status in the QA stage of your Jira workflow
+   - `jira.lastStatusOfUAT` - Last status in the UAT stage of your Jira workflow
+3. Update SECRET_NAME in `template.yaml` to match the name of the Secrets Manager secret with your Jira keys
 
 Never commit secrets to config files. OAuth credentials must come from the environment.
 
-## Usage
+## Usage & Development
 
 ```bash
+
+#Install dependencies
+npm install
+
 # Build the project
 npm run build
 
-# Run with default config (config/config.local.yaml)
-export JIRA_CLIENT_ID=your-client-id
-export JIRA_CLIENT_SECRET=your-client-secret
-node dist/cli.js
-
-# Run with custom config
-node dist/cli.js path/to/config.yaml
+# Deploy to SAM
+sam build
+sam deploy --guided
 
 # Run tests
 npm test
 ```
-
-The report will be written to the path specified in `output.path` (default: `./out/report.html`).
 
 The generated HTML report shows:
 - Sprint selection via checkboxes (all active + 3 most recent closed + 3 next future sprints)
@@ -103,15 +128,14 @@ The generated HTML report shows:
 - Real-time updates as you check/uncheck sprints
 - Summary stats: total story points, issues, and categories
 
-## Development
+## Output
+Each run writes the generated HTML report to the S3 bucket specified by BUCKET_NAME using the key 'metrics-report'. The latest run overrides the previous report.
 
-```bash
-# Run tests in watch mode
-npm run test:watch
-
-# Build
-npm run build
-```
+## Infrastructure
+AWS SAM provisions the application infrastructure, including:
+- Lambda function for scheduled report generation
+- S3 bucket for report storage
+- Secrets Manager integration for Jira credentials
 
 ## Project Structure
 
@@ -136,19 +160,22 @@ src/
     classification-parser.ts       Parse cascading select field
     sunburst-aggregator.ts         Aggregate issues to sunburst data
     sunburst-dataset.ts            Plotly-compatible data structure
+    metric-dataset.ts              Data structure for metrics data
     target-sunburst-generator.ts   Generate target distribution from config
+  handlers/
+    lambda-handler.ts              Lambda entry point
   report/
     html-report-renderer.ts        Renders interactive HTML with Plotly
     report-model.ts                Data model for reports
     output/
-      output-target.ts             Output interface
-      local-file-output.ts         Writes to local filesystem
+      output-target.ts             Output interface (legacy - not used when outputting to S3)
+      local-file-output.ts         Writes to local filesystem (legacy - not used when outputting to S3)
 config/
   schema.ts                   Zod validation schema
   config.yaml                 Base config template
-  config.local.yaml          Local overrides (committed, no secrets)
+  config.local.yaml          Local overrides (no secrets, gitignored)
 test/
-  *.test.ts                   Unit tests with vitest (47 tests)
+  *.test.ts                   Unit tests with vitest
 ```
 
 ## Milestones

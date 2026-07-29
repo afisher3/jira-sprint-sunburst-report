@@ -21,7 +21,9 @@ describe('HtmlReportRenderer', () => {
         { id: 1, name: 'Sprint 1', state: 'active', startDate: '2025-01-01', endDate: '2025-01-14' },
         { id: 2, name: 'Sprint 2', state: 'closed', startDate: '2024-12-01', endDate: '2024-12-14', completeDate: '2024-12-14' }
       ],
-      datasets: new Map()
+      datasets: new Map(),
+      metricDatasets: new Map(),
+      stageSummaryDatasets: new Map()
     };
 
     const html = renderer.render(model);
@@ -45,7 +47,9 @@ describe('HtmlReportRenderer', () => {
         { id: 2, name: 'Closed Sprint', state: 'closed', startDate: '2024-12-01', completeDate: '2024-12-14' },
         { id: 3, name: 'Future Sprint', state: 'future', startDate: '2025-02-01' }
       ],
-      datasets: new Map()
+      datasets: new Map(),
+      metricDatasets: new Map(),
+      stageSummaryDatasets: new Map()
     };
 
     const html = renderer.render(model);
@@ -67,7 +71,9 @@ describe('HtmlReportRenderer', () => {
         { id: 3, name: 'Sprint 3', state: 'closed', startDate: '2024-12-01', completeDate: '2024-12-14' },
         { id: 4, name: 'Sprint 4', state: 'future', startDate: '2025-02-01' }
       ],
-      datasets: new Map()
+      datasets: new Map(),
+      metricDatasets: new Map(),
+      stageSummaryDatasets: new Map()
     };
 
     const html = renderer.render(model);
@@ -87,7 +93,9 @@ describe('HtmlReportRenderer', () => {
       sprints: [
         { id: 1, name: 'Sprint <script>alert("xss")</script>', state: 'active', startDate: '2025-01-01' }
       ],
-      datasets: new Map()
+      datasets: new Map(),
+      metricDatasets: new Map(),
+      stageSummaryDatasets: new Map()
     };
 
     const html = renderer.render(model);
@@ -105,7 +113,9 @@ describe('HtmlReportRenderer', () => {
       sprints: [
         { id: 1, name: 'Sprint 1', state: 'future' }
       ],
-      datasets: new Map()
+      datasets: new Map(),
+      metricDatasets: new Map(),
+      stageSummaryDatasets: new Map()
     };
 
     const html = renderer.render(model);
@@ -121,7 +131,9 @@ describe('HtmlReportRenderer', () => {
       generatedAt: '2025-01-15T10:30:00Z',
       boardId: 1,
       sprints: [],
-      datasets: new Map()
+      datasets: new Map(),
+      metricDatasets: new Map(),
+      stageSummaryDatasets: new Map()
     };
 
     const html = renderer.render(model);
@@ -141,7 +153,9 @@ describe('HtmlReportRenderer', () => {
       generatedAt: '2025-01-15T10:30:00Z',
       boardId: 1,
       sprints: [],
-      datasets: new Map()
+      datasets: new Map(),
+      metricDatasets: new Map(),
+      stageSummaryDatasets: new Map()
     };
 
     const html = renderer.render(model);

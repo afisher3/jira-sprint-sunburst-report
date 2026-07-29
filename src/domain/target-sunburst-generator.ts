@@ -1,4 +1,5 @@
 import type { TargetClassification } from '../config/app-config.js';
+import { getCategoryId } from './sunburst-aggregator.js';
 import type { SunburstDataset } from './sunburst-dataset.js';
 
 /**
@@ -23,6 +24,11 @@ export class TargetSunburstGenerator {
       };
     }
 
+    // Sort classifications alphabetically so they are in the same order as the other chart
+    const sortedClassifications = [...targetClassifications].sort(
+      (a, b)=> a.level1.localeCompare(b.level1)
+    )
+
     const ids: string[] = [];
     const labels: string[] = [];
     const parents: string[] = [];
@@ -31,7 +37,7 @@ export class TargetSunburstGenerator {
     // Group by level1 to build hierarchy
     const level1Map = new Map<string, { level2Items: Array<{ level2: string; percentage: number }> }>();
 
-    for (const target of targetClassifications) {
+    for (const target of sortedClassifications) {
       if (!level1Map.has(target.level1)) {
         level1Map.set(target.level1, { level2Items: [] });
       }
@@ -52,19 +58,24 @@ export class TargetSunburstGenerator {
       values.push(level1Total);
     }
 
+    if (values.reduce((cur, num) => cur + num, 0) != 100){
+      throw new Error("Target Classification percentages don't add up to 100");
+    }
+
     // Build level 2 nodes
     for (const [level1Name, data] of level1Map.entries()) {
       const level1Id = this.makeId(level1Name);
 
       for (const item of data.level2Items) {
-        const level2Id = `${level1Id}|${this.makeId(item.level2)}`;
-
+        const level2Id = getCategoryId(level1Id,this.makeId(item.level2));
         ids.push(level2Id);
         labels.push(item.level2);
         parents.push(level1Id);
         values.push(item.percentage);
       }
     }
+
+
 
     return {
       ids,

@@ -5,10 +5,10 @@ import type { Issue } from '../src/domain/issue.js';
 describe('SunburstAggregator', () => {
   it('should aggregate issues by classification and sum story points', () => {
     const issues: Issue[] = [
-      { key: 'PROJ-1', summary: 'Task 1', storyPoints: 5, classification: { level1: 'App Dev', level2: 'New Feature' } },
-      { key: 'PROJ-2', summary: 'Task 2', storyPoints: 3, classification: { level1: 'App Dev', level2: 'New Feature' } },
-      { key: 'PROJ-3', summary: 'Task 3', storyPoints: 2, classification: { level1: 'App Dev', level2: 'Bug Fix' } },
-      { key: 'PROJ-4', summary: 'Task 4', storyPoints: 4, classification: { level1: 'Infrastructure', level2: 'Maintenance' } }
+      { key: 'PROJ-1', summary: 'Task 1', status: 'ready for dev', storyPoints: 5, classification: { level1: 'App Dev', level2: 'New Feature' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-2', summary: 'Task 2', status: 'In UAT', storyPoints: 3, classification: { level1: 'App Dev', level2: 'New Feature' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-3', summary: 'Task 3', status: 'Ready for Peer Review', storyPoints: 2, classification: { level1: 'App Dev', level2: 'Bug Fix' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-4', summary: 'Task 4', status: 'In Progress', storyPoints: 4, classification: { level1: 'Infrastructure', level2: 'Maintenance' }, qaFailCount: 0, uatFailCount: 0 }
     ];
 
     const dataset = SunburstAggregator.aggregate(issues);
@@ -41,7 +41,7 @@ describe('SunburstAggregator', () => {
 
   it('should create correct parent-child relationships', () => {
     const issues: Issue[] = [
-      { key: 'PROJ-1', summary: 'Task', storyPoints: 5, classification: { level1: 'Security', level2: 'Audit' } }
+      { key: 'PROJ-1', summary: 'Task', status: 'In Progress', storyPoints: 5, classification: { level1: 'Security', level2: 'Audit' }, qaFailCount: 0, uatFailCount: 0 }
     ];
 
     const dataset = SunburstAggregator.aggregate(issues);
@@ -66,8 +66,8 @@ describe('SunburstAggregator', () => {
 
   it('should handle issues with zero story points', () => {
     const issues: Issue[] = [
-      { key: 'PROJ-1', summary: 'Task 1', storyPoints: 0, classification: { level1: 'App Dev', level2: 'New Feature' } },
-      { key: 'PROJ-2', summary: 'Task 2', storyPoints: 5, classification: { level1: 'App Dev', level2: 'New Feature' } }
+      { key: 'PROJ-1', summary: 'Task 1', status: 'In Progress', storyPoints: 0, classification: { level1: 'App Dev', level2: 'New Feature' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-2', summary: 'Task 2', status: 'In UAT', storyPoints: 5, classification: { level1: 'App Dev', level2: 'New Feature' }, qaFailCount: 0, uatFailCount: 0 }
     ];
 
     const dataset = SunburstAggregator.aggregate(issues);
@@ -78,7 +78,7 @@ describe('SunburstAggregator', () => {
 
   it('should handle unclassified issues', () => {
     const issues: Issue[] = [
-      { key: 'PROJ-1', summary: 'Task', storyPoints: 3, classification: { level1: 'Unclassified', level2: 'Unspecified' } }
+      { key: 'PROJ-1', summary: 'Task', status: 'In Progress', storyPoints: 3, classification: { level1: 'Unclassified', level2: 'Unspecified' }, qaFailCount: 0, uatFailCount: 0 }
     ];
 
     const dataset = SunburstAggregator.aggregate(issues);
@@ -92,9 +92,9 @@ describe('SunburstAggregator', () => {
 
   it('should aggregate multiple issues with same classification', () => {
     const issues: Issue[] = [
-      { key: 'PROJ-1', summary: 'Task 1', storyPoints: 2, classification: { level1: 'Test', level2: 'Unit Test' } },
-      { key: 'PROJ-2', summary: 'Task 2', storyPoints: 3, classification: { level1: 'Test', level2: 'Unit Test' } },
-      { key: 'PROJ-3', summary: 'Task 3', storyPoints: 1, classification: { level1: 'Test', level2: 'Unit Test' } }
+      { key: 'PROJ-1', summary: 'Task 1', status: 'In Progress', storyPoints: 2, classification: { level1: 'Test', level2: 'Unit Test' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-2', summary: 'Task 2', status: 'In Peer Review', storyPoints: 3, classification: { level1: 'Test', level2: 'Unit Test' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-3', summary: 'Task 3', status: 'In Testing', storyPoints: 1, classification: { level1: 'Test', level2: 'Unit Test' }, qaFailCount: 0, uatFailCount: 0 }
     ];
 
     const dataset = SunburstAggregator.aggregate(issues);
@@ -110,7 +110,7 @@ describe('SunburstAggregator', () => {
 
   it('should use correct labels (level2 name, not full path)', () => {
     const issues: Issue[] = [
-      { key: 'PROJ-1', summary: 'Task', storyPoints: 5, classification: { level1: 'App Dev', level2: 'New Feature' } }
+      { key: 'PROJ-1', summary: 'Task', status: 'In Progress', storyPoints: 5, classification: { level1: 'App Dev', level2: 'New Feature' }, qaFailCount: 0, uatFailCount: 0 }
     ];
 
     const dataset = SunburstAggregator.aggregate(issues);
@@ -126,11 +126,11 @@ describe('SunburstAggregator', () => {
 
   it('should handle multiple level1 categories with subcategories', () => {
     const issues: Issue[] = [
-      { key: 'PROJ-1', summary: 'T1', storyPoints: 5, classification: { level1: 'A', level2: 'A1' } },
-      { key: 'PROJ-2', summary: 'T2', storyPoints: 3, classification: { level1: 'A', level2: 'A2' } },
-      { key: 'PROJ-3', summary: 'T3', storyPoints: 2, classification: { level1: 'B', level2: 'B1' } },
-      { key: 'PROJ-4', summary: 'T4', storyPoints: 4, classification: { level1: 'B', level2: 'B2' } },
-      { key: 'PROJ-5', summary: 'T5', storyPoints: 1, classification: { level1: 'C', level2: 'C1' } }
+      { key: 'PROJ-1', summary: 'T1', status: 'In Progress', storyPoints: 5, classification: { level1: 'A', level2: 'A1' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-2', summary: 'T2', status: 'In UAT', storyPoints: 3, classification: { level1: 'A', level2: 'A2' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-3', summary: 'T3', status: 'Ready for UAT', storyPoints: 2, classification: { level1: 'B', level2: 'B1' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-4', summary: 'T4', status: 'Resolved', storyPoints: 4, classification: { level1: 'B', level2: 'B2' }, qaFailCount: 0, uatFailCount: 0 },
+      { key: 'PROJ-5', summary: 'T5', status: 'In Progress', storyPoints: 1, classification: { level1: 'C', level2: 'C1' }, qaFailCount: 0, uatFailCount: 0 }
     ];
 
     const dataset = SunburstAggregator.aggregate(issues);

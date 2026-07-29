@@ -42,16 +42,15 @@ export class ClassificationParser {
 
     // Handle string format (CSV export or manual string)
     if (typeof raw === 'string') {
-      const trimmed = raw.trim();
-      if (trimmed === '') {
+
+      // Split on " -> " and trim
+      const parts = raw.split(this.SEPARATOR).map(p => p.trim());
+      if (raw.trim() === '') {
         return {
           level1: this.DEFAULT_LEVEL1,
           level2: this.DEFAULT_LEVEL2
         };
       }
-
-      // Split on " -> " and trim
-      const parts = trimmed.split(this.SEPARATOR).map(p => p.trim());
 
       // level1 is always first part
       const level1 = parts[0] || this.DEFAULT_LEVEL1;

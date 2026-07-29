@@ -6,11 +6,16 @@ import { z } from 'zod';
  */
 
 export const JiraConfigSchema = z.object({
-  baseUrl: z.string().url('baseUrl must be a valid URL'),
   boardId: z.number().int().positive('boardId must be a positive integer'),
   storyPointsFieldId: z.string().min(1, 'storyPointsFieldId must not be empty'),
   classificationFieldId: z.string().min(1, 'classificationFieldId must not be empty'),
   // OAuth authentication (clientId and clientSecret come from env vars)
+  lastStatusOfRefinement: z.string().min(1, 'lastStatusOfRefinement must not be empty'),
+  lastStatusOfDev: z.string().min(1, 'lastStatusOfDev must not be empty'),
+  lastStatusOfQA: z.string().min(1, 'lastStatusOfQA must not be empty'),
+  lastStatusOfUAT: z.string().min(1, 'lastStatusOfUAT must not be empty'),
+  refinedStatusName: z.string().min(1, 'refinedStatusName must not be empty'),
+  readyForDevStatusName: z.string().min(1, 'readyForDevStatusName must not be empty'),
   authType: z.enum(['oauth']).default('oauth')
 });
 
@@ -31,28 +36,15 @@ export const ReportConfigSchema = z.object({
 });
 
 export const OutputConfigSchema = z.object({
-  type: z.enum(['local', 'confluence'], {
-    errorMap: () => ({ message: 'output.type must be "local" or "confluence"' })
-  }),
-  path: z.string().min(1, 'output.path must not be empty').optional()
-}).refine(
-  (data) => {
-    if (data.type === 'local' && !data.path) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: 'output.path is required when output.type is "local"',
-    path: ['path']
-  }
-);
+  type: z.enum(['local', 's3']).default('local'),
+  path: z.string().optional()
+});
 
 export const ConfigSchema = z.object({
   jira: JiraConfigSchema,
   window: WindowConfigSchema.default({ closed: 3, future: 3 }),
   report: ReportConfigSchema.default({ showEmptyCategories: false }),
-  output: OutputConfigSchema,
+  output: OutputConfigSchema.default({ type: 'local' }),
   logLevel: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info')
 });
 

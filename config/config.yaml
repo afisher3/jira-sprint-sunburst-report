@@ -1,21 +1,31 @@
-# Base configuration for Jira Sprint Sunburst Report
-# NEVER put secrets (OAuth credentials) in this file — use environment variables
-# Required env vars: JIRA_CLIENT_ID, JIRA_CLIENT_SECRET
+# Base configuration for Jira Sprint Sunburst and Delivery Health Report
+# NEVER put secrets (OAuth credentials) in this file
+# Jira credentials are pulled from AWS Secrets Manager
 
 jira:
-  baseUrl: https://your-org.atlassian.net
+  # Update the board ID to match the Jira board and field configuration
   boardId: 1
   # Resolve these via GET /rest/api/3/field, then update with actual IDs
   storyPointsFieldId: customfield_10016
   classificationFieldId: customfield_10000
+  qaFailCountFieldId: customfield_10223
+  uatFailCountFieldId: customfield_10224
+  # Update these to match the exact name of the final status in each stage of your workflow
+  lastStatusOfRefinement: ""
+  lastStatusOfDev: ""
+  lastStatusOfQA: ""
+  lastStatusOfUAT: ""
+  # Update these to match the exact status names used for the Sprint Summary by Stages counters
+  refinedStatusName: ""
+  readyForDevStatusName: ""
   authType: oauth
 
 window:
   closed: 3   # Number of most recently closed sprints to include
-  future: 3   # Number of future sprints to include
+  future: 3   # Number of upcoming sprints to include
 
 report:
-  showEmptyCategories: false  # Show zero-valued categories in sunburst
+  showEmptyCategories: false  # Include categories with zero story points in the report
   # Target classification percentages for ideal distribution comparison
   # Adjust these percentages to match your organization's goals
   targetClassifications:
@@ -55,7 +65,7 @@ report:
       percentage: 5
 
 output:
-  type: local
+  type: local  # local | s3 (s3 requires the BUCKET_NAME env var)
   path: ./out/report.html
 
-logLevel: info  # trace | debug | info | warn | error | fatal
+logLevel: "info"  # trace | debug | info | warn | error | fatal

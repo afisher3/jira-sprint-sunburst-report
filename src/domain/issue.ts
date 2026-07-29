@@ -2,11 +2,12 @@ import type { Classification } from './classification.js';
 
 /**
  * Issue — domain model for Jira issue with story points and classification.
- * Represents the data needed for sunburst aggregation.
+ * Represents the data needed for sunburst & metrics aggregation.
  */
 export interface Issue {
   key: string;                    // e.g., "PROJ-123"
   summary: string;                // Issue title
+  status: string;                 // Current status (e.g., "In Progress")
   storyPoints: number;            // Story points (0 if not set)
   classification: Classification; // Parsed two-level classification
 }

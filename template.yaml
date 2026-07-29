@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  metrics-dashboard
+Transform:
+- AWS::Serverless-2016-10-31
+
+Resources:
+  DashboardBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: metrics-dashboard-bucket
+  ScheduledDashboardCreation:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: A Lambda function that pulls data from Jira and creates a metrics dashboard
+      Runtime: nodejs22.x
+      Architectures:
+      - x86_64
+      CodeUri: .
+      Handler: dist/src/handlers/lambda-handler.handler
+      PermissionsBoundary: arn:aws:iam::652871367610:policy/SandboxBoundary
+      Environment:
+        Variables:
+          JIRA_SECRET_NAME: metrics-dashboard/jira
+          BUCKET_NAME: !Ref DashboardBucket
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+          - Effect: Allow
+            Action: 
+              - S3:PutObject
+            Resource: !Sub "${DashboardBucket.Arn}/*"
+        - Statement: 
+          - Effect: Allow
+            Action: 
+              - secretsmanager:GetSecretValue
+            Resource: arn:aws:secretsmanager:us-east-1:652871367610:secret:metrics-dashboard/jira-X1KLGv
+      MemorySize: 256 # Tends to use 150 MB, allow for slightly more memory if needed
+      Timeout: 180 # Tends to take 20 seconds, allow for slightly more time if needed
+Globals:
+  Function:
+    LoggingConfig:
+      LogFormat: JSON
+      ApplicationLogLevel: DEBUG
+      SystemLogLevel: DEBUG
