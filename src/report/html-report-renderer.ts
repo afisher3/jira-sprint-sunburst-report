@@ -255,6 +255,11 @@ export class HtmlReportRenderer {
       font-weight: 700;
       color: #172b4d;
     }
+    .stat-value-unit {
+      font-size: 12px;
+      font-weight: 400;
+      color: #6b778c;
+    }
     .stats-subtitle {
       font-size: 12px;
       font-weight: 400;
@@ -592,6 +597,12 @@ export class HtmlReportRenderer {
     }
 
     // Render sunburst chart for aggregated data
+    // Renders "<count> (<points>) pts" with "pts" as smaller subtext
+    function setThroughputValue(elementId, count, points) {
+      document.getElementById(elementId).innerHTML =
+        count + ' (' + points + ' <span class="stat-value-unit">pts</span> )';
+    }
+
     function renderSunburst(aggregatedDataset) {
       if (!aggregatedDataset || aggregatedDataset.ids.length === 0) {
         document.getElementById('sunburst').style.display = 'none';
@@ -599,10 +610,10 @@ export class HtmlReportRenderer {
         document.getElementById('total-points').textContent = '0';
         document.getElementById('issue-count').textContent = '0';
         document.getElementById('category-count').textContent = '0';
-        document.getElementById('dev-throughput').textContent = '0 (0)';
-        document.getElementById('refinement-throughput').textContent = '0 (0)';
-        document.getElementById('qa-throughput').textContent = '0 (0)';
-        document.getElementById('uat-throughput').textContent = '0 (0)';
+        setThroughputValue('dev-throughput', 0, 0);
+        setThroughputValue('refinement-throughput', 0, 0);
+        setThroughputValue('qa-throughput', 0, 0);
+        setThroughputValue('uat-throughput', 0, 0);
         document.getElementById('qa-return-rate').textContent = '0';
         document.getElementById('uat-return-rate').textContent = '0';
         return;
@@ -623,10 +634,11 @@ export class HtmlReportRenderer {
       document.getElementById('total-points').textContent = totalPoints.toFixed(1);
       document.getElementById('issue-count').textContent = aggregatedDataset.issueCount;
       document.getElementById('category-count').textContent = categoryCount;
-      document.getElementById('dev-throughput').textContent = aggregatedDataset.devThroughputCount + ' (' + aggregatedDataset.devThroughput + ')';
-      document.getElementById('refinement-throughput').textContent = aggregatedDataset.refinementThroughputCount + ' (' + aggregatedDataset.refinementThroughput + ')';
-      document.getElementById('qa-throughput').textContent = aggregatedDataset.qaThroughputCount + ' (' + aggregatedDataset.qaThroughput + ')';
-      document.getElementById('uat-throughput').textContent = aggregatedDataset.uatThroughputCount + ' (' + aggregatedDataset.uatThroughput + ')';
+      // innerHTML is safe here — every interpolated value is a number, never free text
+      setThroughputValue('dev-throughput', aggregatedDataset.devThroughputCount, aggregatedDataset.devThroughput);
+      setThroughputValue('refinement-throughput', aggregatedDataset.refinementThroughputCount, aggregatedDataset.refinementThroughput);
+      setThroughputValue('qa-throughput', aggregatedDataset.qaThroughputCount, aggregatedDataset.qaThroughput);
+      setThroughputValue('uat-throughput', aggregatedDataset.uatThroughputCount, aggregatedDataset.uatThroughput);
       document.getElementById('qa-return-rate').textContent = aggregatedDataset.qaReturnRate + '%';
       document.getElementById('uat-return-rate').textContent = aggregatedDataset.uatReturnRate + '%';
 
