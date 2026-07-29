@@ -64,4 +64,8 @@ export class ReportDataSerializer {
     }
     return this.toScriptSafeJson(namesObj);
   }
+
+  static serializeBaseUrl(model: ReportModel): string {
+    return this.toScriptSafeJson(model.baseUrl);
+  }
 }

@@ -20,6 +20,7 @@ export class HtmlReportRenderer {
     const issuesBySprintJson = ReportDataSerializer.serializeIssuesBySprint(model);
     const throughputIssueKeysJson = ReportDataSerializer.serializeThroughputIssueKeys(model);
     const sprintNamesJson = ReportDataSerializer.serializeSprintNames(model);
+    const baseUrlJson = ReportDataSerializer.serializeBaseUrl(model);
 
     // Generate sprint checkboxes
     const sprintCheckboxes = model.sprints.map((sprint, index) => {
@@ -211,7 +212,13 @@ export class HtmlReportRenderer {
     .issues-table td.key-cell {
       font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
       font-weight: 600;
+    }
+    .issues-table td.key-cell a {
       color: #0052cc;
+      text-decoration: none;
+    }
+    .issues-table td.key-cell a:hover {
+      text-decoration: underline;
     }
     .issues-table th.points-col,
     .issues-table td.points-cell {
@@ -440,6 +447,7 @@ export class HtmlReportRenderer {
     // Issue keys behind each Throughput card, per sprint — used to filter the tickets table.
     const throughputIssueKeys = ${throughputIssueKeysJson};
     const sprintNames = ${sprintNamesJson};
+    const jiraBaseUrl = ${baseUrlJson};
 
     // Generate colors: each level 1 category gets a distinct color, level 2 children get lighter shades
       const colorPalette = [
@@ -806,6 +814,10 @@ export class HtmlReportRenderer {
       return keySet;
     }
 
+    function buildJiraIssueUrl(issueKey) {
+      return jiraBaseUrl + '/browse/' + issueKey;
+    }
+
     // Bucket a Jira status string into a badge color — a heuristic since status names are
     // org-defined free text (and may be localized), not a fixed enum.
     function statusBadgeClass(status) {
@@ -835,7 +847,12 @@ export class HtmlReportRenderer {
 
         const keyCell = document.createElement('td');
         keyCell.className = 'key-cell';
-        keyCell.textContent = issue.key;
+        const keyLink = document.createElement('a');
+        keyLink.href = buildJiraIssueUrl(issue.key);
+        keyLink.target = '_blank';
+        keyLink.rel = 'noopener noreferrer';
+        keyLink.textContent = issue.key;
+        keyCell.appendChild(keyLink);
         row.appendChild(keyCell);
 
         const summaryCell = document.createElement('td');
