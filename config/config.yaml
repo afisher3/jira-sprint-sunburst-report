@@ -64,4 +64,8 @@ report:
       level2: "Manual Testing"
       percentage: 5
 
+output:
+  type: local  # local | s3 (s3 requires the BUCKET_NAME env var)
+  path: ./out/report.html
+
 logLevel: "info"  # trace | debug | info | warn | error | fatal

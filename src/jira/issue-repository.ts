@@ -119,6 +119,32 @@ export class IssueRepository {
     return allIssues.reduce((sum, i) => sum + i.storyPoints, 0);
   }
 
+    async fetchStatusCountBySprint(sprintId: number, status: string): Promise<number> {
+    // Count of issues that were in the given status at some point during this sprint
+    // (i.e. transitioned into it while the sprint was active), not just issues currently in it.
+    const jql = `sprint = ${sprintId} AND Status changed to "${status}"`;
+    let nextPageToken: string | undefined = undefined;
+    let issueCount = 0;
+
+    while (true) {
+      const response = await this.client.searchJql<JiraSearchResponse>(
+        jql,
+        ['key'],
+        nextPageToken
+      );
+
+      issueCount += response.issues.length;
+
+      if (!response.nextPageToken) {
+        break;
+      }
+      nextPageToken = response.nextPageToken;
+    }
+
+    this.logger.info({ sprintId, status, issueCount }, 'Issue count by status change for sprint');
+    return issueCount;
+  }
+
     async fetchDevThroughput(sprintId: number): Promise<number> {
     // Fetch the count of issues that transitioned to a specific status for a given sprint
     const jql = `sprint = ${sprintId} AND status CHANGED FROM ("In Peer Review") TO ("Ready for Testing", "Ready for UAT")`;

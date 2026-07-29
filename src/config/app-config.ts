@@ -36,5 +36,9 @@ export interface AppConfig {
     showEmptyCategories: boolean;
     targetClassifications: TargetClassification[];
   };
+  output: {
+    type: 'local' | 's3';
+    path?: string;
+  };
   logLevel: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 }

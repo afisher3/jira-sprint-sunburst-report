@@ -8,24 +8,8 @@ import { IssueRepository } from '../jira/issue-repository.js';
 import { SunburstAggregator } from '../domain/sunburst-aggregator.js';
 import { MetricDataset } from '../domain/metric-dataset.js';
 import type { StageSummaryDataset } from '../domain/stage-summary-dataset.js';
-import type { Issue } from '../domain/issue.js';
 import { TargetSunburstGenerator } from '../domain/target-sunburst-generator.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-
-/**
- * Counts issues currently sitting in the "Refined" and "Ready for Dev" statuses.
- */
-function summarizeStages(
-  issues: Issue[],
-  refinedStatusName: string,
-  readyForDevStatusName: string
-): StageSummaryDataset {
-  return {
-    totalIssues: issues.length,
-    refinedCount: issues.filter((issue) => issue.status === refinedStatusName).length,
-    readyForDevCount: issues.filter((issue) => issue.status === readyForDevStatusName).length
-  };
-}
 
 /**
  * ReportGenerator — orchestrates the entire report generation flow.
@@ -76,10 +60,14 @@ export class ReportGenerator {
   }
 
   /**
-   * Generate and write the report.
+   * Generate the report.
+   * When output.type is 'local', the rendered HTML is returned directly instead of being
+   * written to disk — a Lambda execution environment (real AWS or `sam local invoke`) only
+   * allows writes under /tmp, and that path isn't retrievable after the container exits, so
+   * callers running locally are expected to persist the returned HTML themselves.
    * Milestone 3: full flow with issues, classification, aggregation, and sunburst rendering.
    */
-  async generate(): Promise<void> {
+  async generate(): Promise<string | void> {
     this.logger.info('Starting report generation');
 
     // Discover all sprints on the board
@@ -106,12 +94,6 @@ export class ReportGenerator {
         this.config.report.showEmptyCategories
       );
 
-      const stageSummaryDataset = summarizeStages(
-        issues,
-        this.config.jira.refinedStatusName,
-        this.config.jira.readyForDevStatusName
-      );
-
       // Fetch data for metrics
       const [qaFailCount,
         uatFailCount,
@@ -120,7 +102,9 @@ export class ReportGenerator {
         refinementThroughput,
         devThroughput,
         testingThroughput,
-        uatSignoffThroughput] = await Promise.all([
+        uatSignoffThroughput,
+        refinedCount,
+        readyForDevCount] = await Promise.all([
         this.issueRepo.fetchReturnCountQA(sprint.id, this.config.jira.qaFailCountFieldId),
         this.issueRepo.fetchReturnCountUAT(sprint.id, this.config.jira.uatFailCountFieldId),
         this.issueRepo.fetchCountPastQA(sprint.id),
@@ -128,8 +112,16 @@ export class ReportGenerator {
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfRefinement),
         this.issueRepo.fetchDevThroughput(sprint.id),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id,this.config.jira.lastStatusOfQA),
-        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT)
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT),
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.refinedStatusName),
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.readyForDevStatusName)
       ]);
+
+      const stageSummaryDataset: StageSummaryDataset = {
+        totalIssues: issues.length,
+        refinedCount,
+        readyForDevCount
+      };
 
       const metricDataset = new MetricDataset(
         qaFailCount,
@@ -183,6 +175,11 @@ export class ReportGenerator {
 
     // Render to HTML
     const html = this.renderer.render(model);
+
+    if (this.config.output.type === 'local') {
+      this.logger.info('Report generation complete (returning HTML for local output)');
+      return html;
+    }
 
     // Write to S3
     const s3Client = new S3Client({});

@@ -35,10 +35,16 @@ export const ReportConfigSchema = z.object({
   targetClassifications: z.array(TargetClassificationSchema).optional().default([])
 });
 
+export const OutputConfigSchema = z.object({
+  type: z.enum(['local', 's3']).default('local'),
+  path: z.string().optional()
+});
+
 export const ConfigSchema = z.object({
   jira: JiraConfigSchema,
   window: WindowConfigSchema.default({ closed: 3, future: 3 }),
   report: ReportConfigSchema.default({ showEmptyCategories: false }),
+  output: OutputConfigSchema.default({ type: 'local' }),
   logLevel: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info')
 });
 

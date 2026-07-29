@@ -65,6 +65,10 @@ export class ConfigLoader {
         showEmptyCategories: validatedConfig.report.showEmptyCategories,
         targetClassifications: validatedConfig.report.targetClassifications
       },
+      output: {
+        type: validatedConfig.output.type,
+        path: validatedConfig.output.path
+      },
       logLevel: validatedConfig.logLevel
     };
 

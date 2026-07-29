@@ -52,12 +52,12 @@ export const getJiraKeys = async (logger: Logger): Promise<JiraKeys> => {
     }
 }
 
-export const handler = async (): Promise<void> => {
+export const handler = async (): Promise<string | void> => {
     LoggerFactory.init('info');
     const logger = LoggerFactory.child('LambdaHandler');
     logger.info("Getting Jira Keys");
     const jiraKeys = getJiraKeys(logger);
     const config = ConfigLoader.load('config/config.local.yaml', await jiraKeys);
     const reportGenerator = new ReportGenerator(config, logger);
-    await reportGenerator.generate();
-} 
+    return await reportGenerator.generate();
+}
