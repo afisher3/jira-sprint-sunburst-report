@@ -21,6 +21,9 @@ export const JiraConfigSchema = z.object({
   resolvedStatusName: z.string().min(1, 'resolvedStatusName must not be empty'),
   closedStatusName: z.string().min(1, 'closedStatusName must not be empty'),
   reopenedStatusName: z.string().min(1, 'reopenedStatusName must not be empty'),
+  // Project key used to scope the "Sprint Summary by Stages" rolling 30-day JQL queries,
+  // which aren't tied to a specific sprint (e.g. "ATHENA" for "project = ATHENA AND ...").
+  projectKey: z.string().min(1, 'projectKey must not be empty'),
   authType: z.enum(['oauth']).default('oauth')
 });
 

@@ -34,6 +34,7 @@ jira:
   resolvedStatusName: test_status_resolved
   closedStatusName: test_status_closed
   reopenedStatusName: test_status_reopened
+  projectKey: TEST_PROJECT
 window:
   closed: 3
   future: 3
@@ -78,6 +79,7 @@ describe('ConfigLoader', () => {
     expect(config.jira.resolvedStatusName).toBe('test_status_resolved');
     expect(config.jira.closedStatusName).toBe('test_status_closed');
     expect(config.jira.reopenedStatusName).toBe('test_status_reopened');
+    expect(config.jira.projectKey).toBe('TEST_PROJECT');
     expect(config.jira.storyPointsFieldId).toBe('customfield_10016');
     expect(config.jira.classificationFieldId).toBe('customfield_10100')
     expect(config.jira.boardId).toBe(123);
@@ -141,6 +143,7 @@ jira:
   resolvedStatusName: test_status_resolved
   closedStatusName: test_status_closed
   reopenedStatusName: test_status_reopened
+  projectKey: TEST_PROJECT
 `;
     const configPath = writeConfigFile(minimalConfig);
 
