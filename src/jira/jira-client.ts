@@ -183,7 +183,9 @@ export class JiraClient {
       headers: {
         'Authorization': `Bearer ${this.accessToken}`,
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Force-Accept-Language': 'true',
+        'Accept-Language': 'en'
       },
       body: JSON.stringify(body)
     });
