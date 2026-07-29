@@ -9,6 +9,7 @@ import { SunburstAggregator } from '../domain/sunburst-aggregator.js';
 import { MetricDataset } from '../domain/metric-dataset.js';
 import type { StageSummaryDataset } from '../domain/stage-summary-dataset.js';
 import { TargetSunburstGenerator } from '../domain/target-sunburst-generator.js';
+import { LoggerFactory } from '../logging/logger-factory.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 /**
@@ -71,6 +72,38 @@ export class ReportGenerator {
    * Milestone 3: full flow with issues, classification, aggregation, and sunburst rendering.
    */
   async generate(): Promise<string | void> {
+    try {
+      return await this.doGenerate();
+    } finally {
+      // Buffered logs only exist outside sam local invoke (see LoggerFactory) — upload them
+      // to S3 alongside the report so they're reviewable without CloudWatch, on success or
+      // failure alike, instead of printing to the Lambda console.
+      if (process.env.AWS_SAM_LOCAL !== 'true') {
+        await this.uploadLogs().catch((error) => {
+          // Last-resort visibility if even the log upload itself fails.
+          process.stderr.write(`Failed to upload logs to S3: ${(error as Error).message}\n${LoggerFactory.getLogs()}`);
+        });
+      }
+    }
+  }
+
+  private async uploadLogs(): Promise<void> {
+    const bucketName = process.env.BUCKET_NAME;
+    if (!bucketName) {
+      return;
+    }
+
+    const s3Client = new S3Client({});
+    await s3Client.send(new PutObjectCommand({
+      Bucket: bucketName,
+      Key: 'metrics-report.log',
+      Body: LoggerFactory.getLogs(),
+      ContentType: 'text/plain',
+      ContentDisposition: 'inline'
+    }));
+  }
+
+  private async doGenerate(): Promise<string | void> {
     this.logger.info('Starting report generation');
 
     // Discover all sprints on the board
