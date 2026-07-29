@@ -1,5 +1,6 @@
 import type { Logger } from 'pino';
 import type { ReportModel } from './report-model.js';
+import { ReportDataSerializer } from './report-data-serializer.js';
 
 /**
  * HtmlReportRenderer — generates the HTML report from a ReportModel.
@@ -12,10 +13,13 @@ export class HtmlReportRenderer {
     this.logger.debug({ title: model.title }, 'Rendering HTML report');
 
     // Serialize datasets to JSON for client-side use
-    const datasetsJson = this.serializeDatasets(model);
-    const targetDatasetJson = model.targetDataset ? JSON.stringify(model.targetDataset) : 'null';
-    const metricsDatasetsJson = this.serializeMetricsDatasets(model);
-    const stageSummaryDatasetJson = JSON.stringify(model.stageSummaryDataset);
+    const datasetsJson = ReportDataSerializer.serializeDatasets(model);
+    const targetDatasetJson = ReportDataSerializer.serializeTargetDataset(model);
+    const metricsDatasetsJson = ReportDataSerializer.serializeMetricsDatasets(model);
+    const stageSummaryDatasetJson = ReportDataSerializer.serializeStageSummaryDataset(model);
+    const issuesBySprintJson = ReportDataSerializer.serializeIssuesBySprint(model);
+    const throughputIssueKeysJson = ReportDataSerializer.serializeThroughputIssueKeys(model);
+    const sprintNamesJson = ReportDataSerializer.serializeSprintNames(model);
 
     // Generate sprint checkboxes
     const sprintCheckboxes = model.sprints.map((sprint, index) => {
@@ -149,6 +153,46 @@ export class HtmlReportRenderer {
       border-radius: 4px;
       border-left: 4px solid #0052cc;
     }
+    .stat-card-clickable {
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .stat-card-clickable:hover {
+      background: #eaecf0;
+    }
+    .stat-card-clickable.active {
+      background: #dfe8fc;
+      border-left-color: #172b4d;
+    }
+    .table-container {
+      margin-top: 15px;
+      overflow-x: auto;
+    }
+    .issues-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .issues-table th,
+    .issues-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid #dfe1e6;
+      white-space: nowrap;
+    }
+    .issues-table th {
+      color: #6b778c;
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .issues-table td.summary-cell {
+      white-space: normal;
+      max-width: 500px;
+    }
+    .issues-table tbody tr:hover {
+      background: #f4f5f7;
+    }
     .stat-label {
       font-size: 12px;
       color: #6b778c;
@@ -256,25 +300,46 @@ export class HtmlReportRenderer {
 
     <div class="info-panel">
       <h3>Throughput (in Story Points)</h3>
+      <h4>Click a card to filter the ticket table below to the issues behind that number.</h4>
       <div class="stats">
-        <div class="stat-card">
+        <div class="stat-card stat-card-clickable" data-throughput-key="refinement">
           <div class="stat-label">Refinement Throughput</div>
           <div class="stat-value" id="refinement-throughput">0</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card-clickable" data-throughput-key="dev">
           <div class="stat-label">Dev Throughput</div>
           <div class="stat-value" id="dev-throughput">0</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card-clickable" data-throughput-key="qa">
           <div class="stat-label">QA Throughput</div>
           <div class="stat-value" id="qa-throughput">0</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card-clickable" data-throughput-key="uatSignoff">
           <div class="stat-label">UAT Signoff Throughput</div>
           <div class="stat-value" id="uat-throughput">0</div>
         </div>
       </div>
     </div>
+
+    <div class="info-panel">
+      <h3>Tickets <span class="stats-subtitle" id="tickets-filter-label"></span></h3>
+      <div class="table-container">
+        <table class="issues-table">
+          <thead>
+            <tr>
+              <th>Issue</th>
+              <th>Summary</th>
+              <th>Story Points</th>
+              <th>Status</th>
+              <th>Sprint</th>
+            </tr>
+          </thead>
+          <tbody id="issues-table-body"></tbody>
+        </table>
+        <p class="empty-state" id="issues-table-empty" style="display: none;">No tickets to show.</p>
+      </div>
+    </div>
+
     <div class="info-panel">
       <h3>Return Rates</h3>
       <div class="stats">
@@ -314,6 +379,11 @@ export class HtmlReportRenderer {
     const metricDatasets = ${metricsDatasetsJson};
     // Rolling 30-day figures, independent of sprint checkbox selection — rendered once below.
     const stageSummaryDataset = ${stageSummaryDatasetJson};
+    // Full issue list per sprint (key, summary, status, storyPoints) backing the tickets table.
+    const issuesBySprint = ${issuesBySprintJson};
+    // Issue keys behind each Throughput card, per sprint — used to filter the tickets table.
+    const throughputIssueKeys = ${throughputIssueKeysJson};
+    const sprintNames = ${sprintNamesJson};
 
     // Generate colors: each level 1 category gets a distinct color, level 2 children get lighter shades
       const colorPalette = [
@@ -618,11 +688,119 @@ export class HtmlReportRenderer {
       return Array.from(checkboxes).map(cb => parseInt(cb.value));
     }
 
+    // Throughput card labels, used for the "Tickets — filtered by X" subtitle
+    const throughputLabels = {
+      refinement: 'Refinement Throughput',
+      dev: 'Dev Throughput',
+      qa: 'QA Throughput',
+      uatSignoff: 'UAT Signoff Throughput'
+    };
+
+    let activeThroughputFilter = null;
+
+    // Flatten issuesBySprint for the given sprint IDs, tagging each issue with its sprint name
+    function getIssuesForSprints(sprintIds) {
+      const rows = [];
+      for (const sprintId of sprintIds) {
+        const issues = issuesBySprint[sprintId];
+        if (!issues) continue;
+        for (const issue of issues) {
+          rows.push(Object.assign({}, issue, { sprintName: sprintNames[sprintId] || sprintId }));
+        }
+      }
+      return rows;
+    }
+
+    // Union the issue keys for a throughput stat across the given sprint IDs
+    function getThroughputKeySet(sprintIds, throughputKey) {
+      const keySet = new Set();
+      for (const sprintId of sprintIds) {
+        const keys = throughputIssueKeys[sprintId];
+        if (!keys) continue;
+        for (const key of keys[throughputKey] || []) {
+          keySet.add(key);
+        }
+      }
+      return keySet;
+    }
+
+    // Render the tickets table body from a list of issue rows (DOM APIs, not innerHTML,
+    // so issue summaries/statuses from Jira never get interpreted as markup)
+    function renderIssuesTable(issueRows) {
+      const tbody = document.getElementById('issues-table-body');
+      const emptyState = document.getElementById('issues-table-empty');
+      tbody.innerHTML = '';
+
+      if (issueRows.length === 0) {
+        emptyState.style.display = 'block';
+        return;
+      }
+      emptyState.style.display = 'none';
+
+      for (const issue of issueRows) {
+        const row = document.createElement('tr');
+
+        const keyCell = document.createElement('td');
+        keyCell.textContent = issue.key;
+        row.appendChild(keyCell);
+
+        const summaryCell = document.createElement('td');
+        summaryCell.className = 'summary-cell';
+        summaryCell.textContent = issue.summary;
+        row.appendChild(summaryCell);
+
+        const pointsCell = document.createElement('td');
+        pointsCell.textContent = issue.storyPoints;
+        row.appendChild(pointsCell);
+
+        const statusCell = document.createElement('td');
+        statusCell.textContent = issue.status;
+        row.appendChild(statusCell);
+
+        const sprintCell = document.createElement('td');
+        sprintCell.textContent = issue.sprintName;
+        row.appendChild(sprintCell);
+
+        tbody.appendChild(row);
+      }
+    }
+
+    // Recompute and render the tickets table based on selected sprints + active throughput filter
+    function updateIssuesTable() {
+      const selectedIds = getSelectedSprintIds();
+      const filterLabel = document.getElementById('tickets-filter-label');
+
+      document.querySelectorAll('.stat-card-clickable').forEach(card => {
+        card.classList.toggle('active', card.dataset.throughputKey === activeThroughputFilter);
+      });
+
+      if (!activeThroughputFilter) {
+        filterLabel.textContent = '';
+        renderIssuesTable(getIssuesForSprints(selectedIds));
+        return;
+      }
+
+      filterLabel.textContent = '— filtered by ' + throughputLabels[activeThroughputFilter];
+      const keySet = getThroughputKeySet(selectedIds, activeThroughputFilter);
+      const filteredRows = getIssuesForSprints(selectedIds).filter(issue => keySet.has(issue.key));
+      renderIssuesTable(filteredRows);
+    }
+
+    // Handle throughput card clicks — clicking the active card again clears the filter
+    document.querySelectorAll('.stat-card-clickable').forEach(card => {
+      card.addEventListener('click', () => {
+        const key = card.dataset.throughputKey;
+        activeThroughputFilter = activeThroughputFilter === key ? null : key;
+        updateIssuesTable();
+      });
+    });
+
     // Handle checkbox changes
     function handleCheckboxChange() {
       const selectedIds = getSelectedSprintIds();
       const aggregatedDataset = aggregateDatasets(selectedIds);
       renderSunburst(aggregatedDataset);
+      updateIssuesTable();
     }
 
     // Attach event listeners to all checkboxes
@@ -634,6 +812,7 @@ export class HtmlReportRenderer {
     const initialSelectedIds = getSelectedSprintIds();
     const initialAggregated = aggregateDatasets(initialSelectedIds);
     renderSunburst(initialAggregated);
+    updateIssuesTable();
 
     // Render target sunburst (if present)
     if (targetDataset) {
@@ -656,22 +835,6 @@ export class HtmlReportRenderer {
 
     this.logger.info({ htmlLength: html.length }, 'HTML report rendered');
     return html;
-  }
-
-  private serializeDatasets(model: ReportModel): string {
-    const datasetsObj: Record<number, unknown> = {};
-    for (const [sprintId, dataset] of model.datasets.entries()) {
-      datasetsObj[sprintId] = dataset;
-    }
-    return JSON.stringify(datasetsObj);
-  }
-
-  private serializeMetricsDatasets(model: ReportModel): string {
-    const datasetsObj: Record<number, unknown> = {};
-    for (const [sprintId, dataset] of model.metricDatasets.entries()){
-      datasetsObj[sprintId] = dataset;
-    }
-    return JSON.stringify(datasetsObj);
   }
 
   private escapeHtml(unsafe: string | number): string {

@@ -8,6 +8,8 @@ import { IssueRepository } from '../jira/issue-repository.js';
 import { SunburstAggregator } from '../domain/sunburst-aggregator.js';
 import { MetricDataset } from '../domain/metric-dataset.js';
 import type { StageSummaryDataset } from '../domain/stage-summary-dataset.js';
+import type { ThroughputIssueKeys } from '../domain/throughput-issue-keys.js';
+import type { Issue } from '../domain/issue.js';
 import { TargetSunburstGenerator } from '../domain/target-sunburst-generator.js';
 import { LoggerFactory } from '../logging/logger-factory.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -156,6 +158,8 @@ export class ReportGenerator {
     // Fetch issues for each sprint and build sunburst datasets
     const datasets = new Map();
     const metricDatasets = new Map<number,MetricDataset>();
+    const issuesBySprint = new Map<number, Issue[]>();
+    const throughputIssueKeysBySprint = new Map<number, ThroughputIssueKeys>();
 
     for (const sprint of windowedSprints) {
       const issues = await this.issueRepo.fetchBySprint(sprint.id);
@@ -169,10 +173,10 @@ export class ReportGenerator {
         uatFailCount,
         pastQACount,
         pastUATCount,
-        refinementThroughput,
-        devThroughput,
-        testingThroughput,
-        uatSignoffThroughput] = await Promise.all([
+        refinementResult,
+        devResult,
+        qaResult,
+        uatResult] = await Promise.all([
         this.issueRepo.fetchReturnCountQA(sprint.id, this.config.jira.qaFailCountFieldId),
         this.issueRepo.fetchReturnCountUAT(sprint.id, this.config.jira.uatFailCountFieldId),
         this.issueRepo.fetchCountPastQA(sprint.id),
@@ -188,14 +192,23 @@ export class ReportGenerator {
         uatFailCount,
         pastQACount,
         pastUATCount,
-        refinementThroughput,
-        devThroughput,
-        testingThroughput,
-        uatSignoffThroughput
+        refinementResult.totalStoryPoints,
+        devResult.totalStoryPoints,
+        qaResult.totalStoryPoints,
+        uatResult.totalStoryPoints
       );
+
+      const throughputIssueKeys: ThroughputIssueKeys = {
+        refinement: refinementResult.issueKeys,
+        dev: devResult.issueKeys,
+        qa: qaResult.issueKeys,
+        uatSignoff: uatResult.issueKeys
+      };
 
       datasets.set(sprint.id, dataset);
       metricDatasets.set(sprint.id, metricDataset);
+      issuesBySprint.set(sprint.id, issues);
+      throughputIssueKeysBySprint.set(sprint.id, throughputIssueKeys);
 
       this.logger.info({
         sprintId: sprint.id,
@@ -226,6 +239,8 @@ export class ReportGenerator {
       sprints: windowedSprints,
       datasets,
       metricDatasets,
+      issuesBySprint,
+      throughputIssueKeysBySprint,
       stageSummaryDataset,
       targetDataset
     };

@@ -13,6 +13,11 @@ interface JiraSearchResponse {
   nextPageToken?: string;
 }
 
+export interface ThroughputResult {
+  totalStoryPoints: number;
+  issueKeys: string[];
+}
+
 /**
  * IssueRepository — fetches issues for a sprint from Jira and maps to domain model.
  * Uses the platform search API with nextPageToken pagination.
@@ -92,7 +97,7 @@ export class IssueRepository {
     return allIssues;
   }
 
-  async fetchThroughputBySprintStage(sprintId: number, toStatus: string): Promise<number> {
+  async fetchThroughputBySprintStage(sprintId: number, toStatus: string): Promise<ThroughputResult> {
     // Fetch the count of issues that transitioned to a specific status for a given sprint
     const jql = `sprint = ${sprintId} AND Status changed to "${toStatus}"`;
     let nextPageToken: string | undefined = undefined;
@@ -116,14 +121,17 @@ export class IssueRepository {
 
       nextPageToken = response.nextPageToken;
     }
-    return allIssues.reduce((sum, i) => sum + i.storyPoints, 0);
+    return {
+      totalStoryPoints: allIssues.reduce((sum, i) => sum + i.storyPoints, 0),
+      issueKeys: allIssues.map(i => i.key)
+    };
   }
 
     async fetchStatusCountLast30Days(projectKey: string, status: string): Promise<number> {
     // Count of issues in the project that were in the given status at some point in the
     // last 30 days (i.e. transitioned into it), not just issues currently in it. Not scoped
     // to any particular sprint — this is a rolling window, independent of sprint selection.
-    const jql = `project = ${projectKey} AND Status changed to "${status}" after -30d`;
+    const jql = `project = ${projectKey} AND Status changed to "${status}" after -30d AND filter = 11682`;
     let nextPageToken: string | undefined = undefined;
     let issueCount = 0;
 
@@ -159,8 +167,8 @@ export class IssueRepository {
       const windowStart = dayBoundaries[i];
       const windowEnd = dayBoundaries[i + 1];
       const jql = windowEnd === 0
-        ? `project = ${projectKey} AND updated >= ${windowStart}d`
-        : `project = ${projectKey} AND updated >= ${windowStart}d AND updated < ${windowEnd}d`;
+        ? `project = ${projectKey} AND updated >= ${windowStart}d AND filter = 11682`
+        : `project = ${projectKey} AND updated >= ${windowStart}d AND updated < ${windowEnd}d AND filter = 11682`;
 
       let nextPageToken: string | undefined = undefined;
 
@@ -186,7 +194,7 @@ export class IssueRepository {
     return issueKeys.size;
   }
 
-    async fetchDevThroughput(sprintId: number): Promise<number> {
+    async fetchDevThroughput(sprintId: number): Promise<ThroughputResult> {
     // Fetch the count of issues that transitioned to a specific status for a given sprint
     const jql = `sprint = ${sprintId} AND status CHANGED FROM ("In Peer Review") TO ("Ready for Testing", "Ready for UAT")`;
     let nextPageToken: string | undefined = undefined;
@@ -212,7 +220,10 @@ export class IssueRepository {
     }
 
     this.logger.info(`Dev Throughput is ${allIssues.length} issues for sprint ${sprintId}`);
-    return allIssues.reduce((sum, i) => sum + i.storyPoints, 0);
+    return {
+      totalStoryPoints: allIssues.reduce((sum, i) => sum + i.storyPoints, 0),
+      issueKeys: allIssues.map(i => i.key)
+    };
   }
 
   async fetchCountPastQA(sprintId: number): Promise<number>{

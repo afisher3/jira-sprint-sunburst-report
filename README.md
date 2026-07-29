@@ -128,6 +128,64 @@ The generated HTML report shows:
 - Real-time updates as you check/uncheck sprints
 - Summary stats: total story points, issues, and categories
 
+## Running Locally
+
+Runs the real Lambda handler via `sam local invoke` against live Jira data, without uploading to S3.
+
+### Mac/Linux
+
+Prerequisites:
+- Node.js 22+ and npm
+- AWS CLI, authenticated
+- AWS SAM CLI
+- Docker or colima, running
+
+```bash
+# If using colima instead of Docker Desktop
+colima start
+
+# Refresh AWS credentials (SSO/temp creds expire quickly)
+aws login
+
+./scripts/run-report-locally.sh
+```
+
+- Report: `./out/report.html`
+- Logs: `./out/report.log`
+- Script handles `npm run build`, `sam build`, `DOCKER_HOST` (colima socket), `--no-memory-limit`, and extracting the HTML from the invoke response.
+- `LoginRefreshRequired` error → re-run `aws login`, then retry.
+- npm/build errors → run `npm install`, then retry.
+
+### Windows
+
+Prerequisites:
+- Node.js 22+ and npm
+- AWS CLI, authenticated
+- AWS SAM CLI
+- Docker Desktop, running
+
+**PowerShell**
+
+```powershell
+aws login
+.\scripts\run-report-locally.ps1
+```
+
+- Report: `.\out\report.html`
+- Logs: `.\out\report.log` (printed after the invoke finishes, not streamed live — see script header for why)
+- npm/build errors → run `npm install`, then retry.
+
+**Git Bash**
+
+```bash
+aws login
+./scripts/run-report-locally-windows.sh
+```
+
+- Report: `.\out\report.html`
+- Logs: `.\out\report.log` (streamed live, same as Mac/Linux — real bash supports it)
+- npm/build errors → run `npm install`, then retry.
+
 ## Output
 Each run writes the generated HTML report to the S3 bucket specified by BUCKET_NAME using the key 'metrics-report'. The latest run overrides the previous report.
 

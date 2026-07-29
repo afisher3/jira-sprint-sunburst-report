@@ -23,6 +23,8 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
+      issuesBySprint: new Map(),
+      throughputIssueKeysBySprint: new Map(),
       stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
@@ -49,6 +51,8 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
+      issuesBySprint: new Map(),
+      throughputIssueKeysBySprint: new Map(),
       stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
@@ -73,6 +77,8 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
+      issuesBySprint: new Map(),
+      throughputIssueKeysBySprint: new Map(),
       stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
@@ -95,6 +101,8 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
+      issuesBySprint: new Map(),
+      throughputIssueKeysBySprint: new Map(),
       stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
@@ -115,6 +123,8 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
+      issuesBySprint: new Map(),
+      throughputIssueKeysBySprint: new Map(),
       stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
@@ -133,6 +143,8 @@ describe('HtmlReportRenderer', () => {
       sprints: [],
       datasets: new Map(),
       metricDatasets: new Map(),
+      issuesBySprint: new Map(),
+      throughputIssueKeysBySprint: new Map(),
       stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
@@ -155,6 +167,8 @@ describe('HtmlReportRenderer', () => {
       sprints: [],
       datasets: new Map(),
       metricDatasets: new Map(),
+      issuesBySprint: new Map(),
+      throughputIssueKeysBySprint: new Map(),
       stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
