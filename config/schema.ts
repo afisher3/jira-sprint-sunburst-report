@@ -16,6 +16,11 @@ export const JiraConfigSchema = z.object({
   lastStatusOfUAT: z.string().min(1, 'lastStatusOfUAT must not be empty'),
   refinedStatusName: z.string().min(1, 'refinedStatusName must not be empty'),
   readyForDevStatusName: z.string().min(1, 'readyForDevStatusName must not be empty'),
+  readyForTestingStatusName: z.string().min(1, 'readyForTestingStatusName must not be empty'),
+  readyForUatStatusName: z.string().min(1, 'readyForUatStatusName must not be empty'),
+  resolvedStatusName: z.string().min(1, 'resolvedStatusName must not be empty'),
+  closedStatusName: z.string().min(1, 'closedStatusName must not be empty'),
+  reopenedStatusName: z.string().min(1, 'reopenedStatusName must not be empty'),
   authType: z.enum(['oauth']).default('oauth')
 });
 

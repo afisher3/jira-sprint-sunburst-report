@@ -1,8 +1,16 @@
 /**
- * StageSummaryDataset — ticket counts by workflow stage for a sprint.
+ * StageSummaryDataset — per-sprint ticket counts by workflow stage.
+ * Each count (except totalIssues) is the number of issues that transitioned
+ * into that status at some point during the sprint, not just issues
+ * currently sitting in it.
  */
 export interface StageSummaryDataset {
-  totalIssues: number;      // Total number of issues in this sprint
-  refinedCount: number;     // Number of issues currently in the "Refined" status
-  readyForDevCount: number; // Number of issues currently in the "Ready for Dev" status
+  totalIssues: number;
+  refinedCount: number;
+  readyForDevCount: number;
+  readyForTestingCount: number;
+  readyForUatCount: number;
+  resolvedCount: number;
+  closedCount: number;
+  reopenedCount: number;
 }

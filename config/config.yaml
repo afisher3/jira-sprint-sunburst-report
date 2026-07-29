@@ -18,6 +18,11 @@ jira:
   # Update these to match the exact status names used for the Sprint Summary by Stages counters
   refinedStatusName: ""
   readyForDevStatusName: ""
+  readyForTestingStatusName: ""
+  readyForUatStatusName: ""
+  resolvedStatusName: ""
+  closedStatusName: ""
+  reopenedStatusName: ""
   authType: oauth
 
 window:

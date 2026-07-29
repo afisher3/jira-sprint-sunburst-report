@@ -9,6 +9,7 @@ import { SunburstAggregator } from '../domain/sunburst-aggregator.js';
 import { MetricDataset } from '../domain/metric-dataset.js';
 import type { StageSummaryDataset } from '../domain/stage-summary-dataset.js';
 import { TargetSunburstGenerator } from '../domain/target-sunburst-generator.js';
+import { LoggerFactory } from '../logging/logger-factory.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 /**
@@ -61,13 +62,48 @@ export class ReportGenerator {
 
   /**
    * Generate the report.
-   * When output.type is 'local', the rendered HTML is returned directly instead of being
-   * written to disk — a Lambda execution environment (real AWS or `sam local invoke`) only
-   * allows writes under /tmp, and that path isn't retrievable after the container exits, so
-   * callers running locally are expected to persist the returned HTML themselves.
+   * Under `sam local invoke`, AWS_SAM_LOCAL is automatically set to 'true' by the SAM CLI —
+   * in that case the rendered HTML is returned directly instead of uploaded to S3, since a
+   * Lambda execution environment only allows writes under /tmp, and that path isn't
+   * retrievable after the container exits. This check is deliberately based on the runtime
+   * environment rather than config, because `config/config.local.yaml` is the exact same file
+   * bundled into the real deployed Lambda — a config-driven switch here previously caused
+   * production runs to skip the S3 upload and return the full HTML as the Lambda response.
    * Milestone 3: full flow with issues, classification, aggregation, and sunburst rendering.
    */
   async generate(): Promise<string | void> {
+    try {
+      return await this.doGenerate();
+    } finally {
+      // Buffered logs only exist outside sam local invoke (see LoggerFactory) — upload them
+      // to S3 alongside the report so they're reviewable without CloudWatch, on success or
+      // failure alike, instead of printing to the Lambda console.
+      if (process.env.AWS_SAM_LOCAL !== 'true') {
+        await this.uploadLogs().catch((error) => {
+          // Last-resort visibility if even the log upload itself fails.
+          process.stderr.write(`Failed to upload logs to S3: ${(error as Error).message}\n${LoggerFactory.getLogs()}`);
+        });
+      }
+    }
+  }
+
+  private async uploadLogs(): Promise<void> {
+    const bucketName = process.env.BUCKET_NAME;
+    if (!bucketName) {
+      return;
+    }
+
+    const s3Client = new S3Client({});
+    await s3Client.send(new PutObjectCommand({
+      Bucket: bucketName,
+      Key: 'metrics-report.log',
+      Body: LoggerFactory.getLogs(),
+      ContentType: 'text/plain',
+      ContentDisposition: 'inline'
+    }));
+  }
+
+  private async doGenerate(): Promise<string | void> {
     this.logger.info('Starting report generation');
 
     // Discover all sprints on the board
@@ -104,7 +140,12 @@ export class ReportGenerator {
         testingThroughput,
         uatSignoffThroughput,
         refinedCount,
-        readyForDevCount] = await Promise.all([
+        readyForDevCount,
+        readyForTestingCount,
+        readyForUatCount,
+        resolvedCount,
+        closedCount,
+        reopenedCount] = await Promise.all([
         this.issueRepo.fetchReturnCountQA(sprint.id, this.config.jira.qaFailCountFieldId),
         this.issueRepo.fetchReturnCountUAT(sprint.id, this.config.jira.uatFailCountFieldId),
         this.issueRepo.fetchCountPastQA(sprint.id),
@@ -114,13 +155,23 @@ export class ReportGenerator {
         this.issueRepo.fetchThroughputBySprintStage(sprint.id,this.config.jira.lastStatusOfQA),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT),
         this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.refinedStatusName),
-        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.readyForDevStatusName)
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.readyForDevStatusName),
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.readyForTestingStatusName),
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.readyForUatStatusName),
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.resolvedStatusName),
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.closedStatusName),
+        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.reopenedStatusName)
       ]);
 
       const stageSummaryDataset: StageSummaryDataset = {
         totalIssues: issues.length,
         refinedCount,
-        readyForDevCount
+        readyForDevCount,
+        readyForTestingCount,
+        readyForUatCount,
+        resolvedCount,
+        closedCount,
+        reopenedCount
       };
 
       const metricDataset = new MetricDataset(
@@ -176,8 +227,8 @@ export class ReportGenerator {
     // Render to HTML
     const html = this.renderer.render(model);
 
-    if (this.config.output.type === 'local') {
-      this.logger.info('Report generation complete (returning HTML for local output)');
+    if (process.env.AWS_SAM_LOCAL === 'true') {
+      this.logger.info('Report generation complete (running under sam local invoke — returning HTML instead of uploading to S3)');
       return html;
     }
 

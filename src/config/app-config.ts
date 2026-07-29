@@ -27,6 +27,11 @@ export interface AppConfig {
     lastStatusOfUAT: string;
     refinedStatusName: string;
     readyForDevStatusName: string;
+    readyForTestingStatusName: string;
+    readyForUatStatusName: string;
+    resolvedStatusName: string;
+    closedStatusName: string;
+    reopenedStatusName: string;
   };
   window: {
     closed: number;
