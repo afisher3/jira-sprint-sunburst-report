@@ -197,6 +197,26 @@ export class HtmlReportRenderer {
           <div class="stat-label">Ready for Dev</div>
           <div class="stat-value" id="stage-ready-for-dev-count">0</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-label">Ready for Testing</div>
+          <div class="stat-value" id="stage-ready-for-testing-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Ready for UAT</div>
+          <div class="stat-value" id="stage-ready-for-uat-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Resolved</div>
+          <div class="stat-value" id="stage-resolved-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Closed</div>
+          <div class="stat-value" id="stage-closed-count">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Reopened</div>
+          <div class="stat-value" id="stage-reopened-count">0</div>
+        </div>
       </div>
     </div>
 
@@ -343,6 +363,11 @@ export class HtmlReportRenderer {
       let totalStageTickets = 0;
       let totalRefinedCount = 0;
       let totalReadyForDevCount = 0;
+      let totalReadyForTestingCount = 0;
+      let totalReadyForUatCount = 0;
+      let totalResolvedCount = 0;
+      let totalClosedCount = 0;
+      let totalReopenedCount = 0;
 
       for (const dataset of selectedDatasets) {
         totalIssueCount += dataset.issueCount;
@@ -383,6 +408,11 @@ export class HtmlReportRenderer {
         totalStageTickets += stageSummaryDataset.totalIssues;
         totalRefinedCount += stageSummaryDataset.refinedCount;
         totalReadyForDevCount += stageSummaryDataset.readyForDevCount;
+        totalReadyForTestingCount += stageSummaryDataset.readyForTestingCount;
+        totalReadyForUatCount += stageSummaryDataset.readyForUatCount;
+        totalResolvedCount += stageSummaryDataset.resolvedCount;
+        totalClosedCount += stageSummaryDataset.closedCount;
+        totalReopenedCount += stageSummaryDataset.reopenedCount;
       }
 
       // Convert map back to arrays
@@ -427,7 +457,12 @@ export class HtmlReportRenderer {
         uatReturnRate: uatReturnRate,
         stageTotalTickets: totalStageTickets,
         stageRefinedCount: totalRefinedCount,
-        stageReadyForDevCount: totalReadyForDevCount
+        stageReadyForDevCount: totalReadyForDevCount,
+        stageReadyForTestingCount: totalReadyForTestingCount,
+        stageReadyForUatCount: totalReadyForUatCount,
+        stageResolvedCount: totalResolvedCount,
+        stageClosedCount: totalClosedCount,
+        stageReopenedCount: totalReopenedCount
         };
     }
 
@@ -448,6 +483,11 @@ export class HtmlReportRenderer {
         document.getElementById('stage-total-tickets').textContent = '0';
         document.getElementById('stage-refined-count').textContent = '0';
         document.getElementById('stage-ready-for-dev-count').textContent = '0';
+        document.getElementById('stage-ready-for-testing-count').textContent = '0';
+        document.getElementById('stage-ready-for-uat-count').textContent = '0';
+        document.getElementById('stage-resolved-count').textContent = '0';
+        document.getElementById('stage-closed-count').textContent = '0';
+        document.getElementById('stage-reopened-count').textContent = '0';
         return;
       }
 
@@ -475,6 +515,11 @@ export class HtmlReportRenderer {
       document.getElementById('stage-total-tickets').textContent = aggregatedDataset.stageTotalTickets;
       document.getElementById('stage-refined-count').textContent = aggregatedDataset.stageRefinedCount;
       document.getElementById('stage-ready-for-dev-count').textContent = aggregatedDataset.stageReadyForDevCount;
+      document.getElementById('stage-ready-for-testing-count').textContent = aggregatedDataset.stageReadyForTestingCount;
+      document.getElementById('stage-ready-for-uat-count').textContent = aggregatedDataset.stageReadyForUatCount;
+      document.getElementById('stage-resolved-count').textContent = aggregatedDataset.stageResolvedCount;
+      document.getElementById('stage-closed-count').textContent = aggregatedDataset.stageClosedCount;
+      document.getElementById('stage-reopened-count').textContent = aggregatedDataset.stageReopenedCount;
 
       const colors = generateColors(aggregatedDataset, colorPalette, colorMap);
 

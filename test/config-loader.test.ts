@@ -29,6 +29,11 @@ jira:
   lastStatusOfUAT: test_status_uat
   refinedStatusName: test_status_refined
   readyForDevStatusName: test_status_ready_for_dev
+  readyForTestingStatusName: test_status_ready_for_testing
+  readyForUatStatusName: test_status_ready_for_uat
+  resolvedStatusName: test_status_resolved
+  closedStatusName: test_status_closed
+  reopenedStatusName: test_status_reopened
 window:
   closed: 3
   future: 3
@@ -68,6 +73,11 @@ describe('ConfigLoader', () => {
     expect(config.jira.lastStatusOfUAT).toBe('test_status_uat');
     expect(config.jira.refinedStatusName).toBe('test_status_refined');
     expect(config.jira.readyForDevStatusName).toBe('test_status_ready_for_dev');
+    expect(config.jira.readyForTestingStatusName).toBe('test_status_ready_for_testing');
+    expect(config.jira.readyForUatStatusName).toBe('test_status_ready_for_uat');
+    expect(config.jira.resolvedStatusName).toBe('test_status_resolved');
+    expect(config.jira.closedStatusName).toBe('test_status_closed');
+    expect(config.jira.reopenedStatusName).toBe('test_status_reopened');
     expect(config.jira.storyPointsFieldId).toBe('customfield_10016');
     expect(config.jira.classificationFieldId).toBe('customfield_10100')
     expect(config.jira.boardId).toBe(123);
@@ -126,6 +136,11 @@ jira:
   lastStatusOfUAT: test_status
   refinedStatusName: test_status_refined
   readyForDevStatusName: test_status_ready_for_dev
+  readyForTestingStatusName: test_status_ready_for_testing
+  readyForUatStatusName: test_status_ready_for_uat
+  resolvedStatusName: test_status_resolved
+  closedStatusName: test_status_closed
+  reopenedStatusName: test_status_reopened
 `;
     const configPath = writeConfigFile(minimalConfig);
 
