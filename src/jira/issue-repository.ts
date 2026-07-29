@@ -119,10 +119,11 @@ export class IssueRepository {
     return allIssues.reduce((sum, i) => sum + i.storyPoints, 0);
   }
 
-    async fetchStatusCountBySprint(sprintId: number, status: string): Promise<number> {
-    // Count of issues that were in the given status at some point during this sprint
-    // (i.e. transitioned into it while the sprint was active), not just issues currently in it.
-    const jql = `sprint = ${sprintId} AND Status changed to "${status}"`;
+    async fetchStatusCountLast30Days(projectKey: string, status: string): Promise<number> {
+    // Count of issues in the project that were in the given status at some point in the
+    // last 30 days (i.e. transitioned into it), not just issues currently in it. Not scoped
+    // to any particular sprint — this is a rolling window, independent of sprint selection.
+    const jql = `project = ${projectKey} AND Status changed to "${status}" after -30d`;
     let nextPageToken: string | undefined = undefined;
     let issueCount = 0;
 
@@ -141,8 +142,48 @@ export class IssueRepository {
       nextPageToken = response.nextPageToken;
     }
 
-    this.logger.info({ sprintId, status, issueCount }, 'Issue count by status change for sprint');
+    this.logger.info({ projectKey, status, issueCount }, 'Issue count by status change in last 30 days');
     return issueCount;
+  }
+
+    async fetchTotalCountLast30Days(projectKey: string): Promise<number> {
+    // Count of all issues in the project updated within the last 30 days. A single
+    // `updated >= -30d` query can return 500+ issues on a busy project and gets slow, so this
+    // is split into three non-overlapping 10-day windows, each fetched separately, then
+    // unioned into a set of issue keys (a given issue's `updated` timestamp can only fall into
+    // exactly one of these windows, but de-duplicating by key keeps this correct regardless).
+    const dayBoundaries = [-30, -20, -10, 0];
+    const issueKeys = new Set<string>();
+
+    for (let i = 0; i < dayBoundaries.length - 1; i++) {
+      const windowStart = dayBoundaries[i];
+      const windowEnd = dayBoundaries[i + 1];
+      const jql = windowEnd === 0
+        ? `project = ${projectKey} AND updated >= ${windowStart}d`
+        : `project = ${projectKey} AND updated >= ${windowStart}d AND updated < ${windowEnd}d`;
+
+      let nextPageToken: string | undefined = undefined;
+
+      while (true) {
+        const response = await this.client.searchJql<JiraSearchResponse>(
+          jql,
+          ['key'],
+          nextPageToken
+        );
+
+        for (const issue of response.issues) {
+          issueKeys.add(issue.key);
+        }
+
+        if (!response.nextPageToken) {
+          break;
+        }
+        nextPageToken = response.nextPageToken;
+      }
+    }
+
+    this.logger.info({ projectKey, issueCount: issueKeys.size }, 'Total issue count in last 30 days');
+    return issueKeys.size;
   }
 
     async fetchDevThroughput(sprintId: number): Promise<number> {

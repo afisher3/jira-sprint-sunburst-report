@@ -15,7 +15,7 @@ export class HtmlReportRenderer {
     const datasetsJson = this.serializeDatasets(model);
     const targetDatasetJson = model.targetDataset ? JSON.stringify(model.targetDataset) : 'null';
     const metricsDatasetsJson = this.serializeMetricsDatasets(model);
-    const stageSummaryDatasetsJson = this.serializeStageSummaryDatasets(model);
+    const stageSummaryDatasetJson = JSON.stringify(model.stageSummaryDataset);
 
     // Generate sprint checkboxes
     const sprintCheckboxes = model.sprints.map((sprint, index) => {
@@ -132,12 +132,16 @@ export class HtmlReportRenderer {
       border-radius: 8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       margin-top: 20px;
+      margin-bottom: 20px;
     }
     .stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 15px;
       margin-top: 15px;
+    }
+    .stats-4col {
+      grid-template-columns: repeat(4, 1fr);
     }
     .stat-card {
       background: #f4f5f7;
@@ -157,6 +161,17 @@ export class HtmlReportRenderer {
       font-weight: 700;
       color: #172b4d;
     }
+    .stats-subtitle {
+      font-size: 12px;
+      font-weight: 400;
+      color: #6b778c;
+    }
+    .info-panel h4 {
+      margin-top: 6px;
+      font-size: 16px;
+      font-weight: 400;
+      color: #6b778c;
+    }
     .empty-state {
       text-align: center;
       padding: 60px 20px;
@@ -175,16 +190,10 @@ export class HtmlReportRenderer {
       <p class="subtitle">Board ${model.boardId} • Generated ${new Date(model.generatedAt).toLocaleString("en-US",{timeZone: "America/New_York",timeZoneName:"short"})}</p>
     </header>
 
-    <div class="controls">
-      <h3>Select Sprints to Include:</h3>
-      <div class="sprint-list">
-        ${sprintCheckboxes}
-      </div>
-    </div>
-
     <div class="info-panel">
-      <h3>Sprint Summary by Stages</h3>
-      <div class="stats">
+      <h3>Last 30 Days Summary</h3>
+      <h4>Ticket counts across the whole project for the rolling last 30 days: how many tickets moved into each workflow stage, plus the total number touched overall — independent of which sprints are selected below.</h4>
+      <div class="stats stats-4col">
         <div class="stat-card">
           <div class="stat-label">Total Tickets</div>
           <div class="stat-value" id="stage-total-tickets">0</div>
@@ -217,6 +226,13 @@ export class HtmlReportRenderer {
           <div class="stat-label">Reopened</div>
           <div class="stat-value" id="stage-reopened-count">0</div>
         </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <h3>Select Sprints to Include:</h3>
+      <div class="sprint-list">
+        ${sprintCheckboxes}
       </div>
     </div>
 
@@ -296,7 +312,8 @@ export class HtmlReportRenderer {
     const datasets = ${datasetsJson};
     const targetDataset = ${targetDatasetJson};
     const metricDatasets = ${metricsDatasetsJson};
-    const stageSummaryDatasets = ${stageSummaryDatasetsJson};
+    // Rolling 30-day figures, independent of sprint checkbox selection — rendered once below.
+    const stageSummaryDataset = ${stageSummaryDatasetJson};
 
     // Generate colors: each level 1 category gets a distinct color, level 2 children get lighter shades
       const colorPalette = [
@@ -340,11 +357,6 @@ export class HtmlReportRenderer {
         .map(id => metricDatasets[id])
         .filter(ds => ds);
 
-      // Collect stage summary datasets for selected sprints
-      const selectedStageSummaryDatasets = sprintIds
-        .map(id => stageSummaryDatasets[id])
-        .filter(ds => ds);
-
       if (selectedDatasets.length === 0) {
         return null;
       }
@@ -360,14 +372,6 @@ export class HtmlReportRenderer {
       let totalUATFailCount = 0;
       let totalPastQACount = 0;
       let totalPastUATCount = 0;
-      let totalStageTickets = 0;
-      let totalRefinedCount = 0;
-      let totalReadyForDevCount = 0;
-      let totalReadyForTestingCount = 0;
-      let totalReadyForUatCount = 0;
-      let totalResolvedCount = 0;
-      let totalClosedCount = 0;
-      let totalReopenedCount = 0;
 
       for (const dataset of selectedDatasets) {
         totalIssueCount += dataset.issueCount;
@@ -402,17 +406,6 @@ export class HtmlReportRenderer {
         totalUATFailCount += metricDataset.uatFailCount;
         totalPastQACount += metricDataset.pastQACount;
         totalPastUATCount += metricDataset.pastUATCount;
-      }
-
-      for (const stageSummaryDataset of selectedStageSummaryDatasets){
-        totalStageTickets += stageSummaryDataset.totalIssues;
-        totalRefinedCount += stageSummaryDataset.refinedCount;
-        totalReadyForDevCount += stageSummaryDataset.readyForDevCount;
-        totalReadyForTestingCount += stageSummaryDataset.readyForTestingCount;
-        totalReadyForUatCount += stageSummaryDataset.readyForUatCount;
-        totalResolvedCount += stageSummaryDataset.resolvedCount;
-        totalClosedCount += stageSummaryDataset.closedCount;
-        totalReopenedCount += stageSummaryDataset.reopenedCount;
       }
 
       // Convert map back to arrays
@@ -454,15 +447,7 @@ export class HtmlReportRenderer {
         qaThroughput: totalQAThroughput,
         uatThroughput: totalUATThroughput,
         qaReturnRate: qaReturnRate,
-        uatReturnRate: uatReturnRate,
-        stageTotalTickets: totalStageTickets,
-        stageRefinedCount: totalRefinedCount,
-        stageReadyForDevCount: totalReadyForDevCount,
-        stageReadyForTestingCount: totalReadyForTestingCount,
-        stageReadyForUatCount: totalReadyForUatCount,
-        stageResolvedCount: totalResolvedCount,
-        stageClosedCount: totalClosedCount,
-        stageReopenedCount: totalReopenedCount
+        uatReturnRate: uatReturnRate
         };
     }
 
@@ -480,14 +465,6 @@ export class HtmlReportRenderer {
         document.getElementById('uat-throughput').textContent = '0';
         document.getElementById('qa-return-rate').textContent = '0';
         document.getElementById('uat-return-rate').textContent = '0';
-        document.getElementById('stage-total-tickets').textContent = '0';
-        document.getElementById('stage-refined-count').textContent = '0';
-        document.getElementById('stage-ready-for-dev-count').textContent = '0';
-        document.getElementById('stage-ready-for-testing-count').textContent = '0';
-        document.getElementById('stage-ready-for-uat-count').textContent = '0';
-        document.getElementById('stage-resolved-count').textContent = '0';
-        document.getElementById('stage-closed-count').textContent = '0';
-        document.getElementById('stage-reopened-count').textContent = '0';
         return;
       }
 
@@ -512,14 +489,6 @@ export class HtmlReportRenderer {
       document.getElementById('uat-throughput').textContent = aggregatedDataset.uatThroughput;
       document.getElementById('qa-return-rate').textContent = aggregatedDataset.qaReturnRate + '%';
       document.getElementById('uat-return-rate').textContent = aggregatedDataset.uatReturnRate + '%';
-      document.getElementById('stage-total-tickets').textContent = aggregatedDataset.stageTotalTickets;
-      document.getElementById('stage-refined-count').textContent = aggregatedDataset.stageRefinedCount;
-      document.getElementById('stage-ready-for-dev-count').textContent = aggregatedDataset.stageReadyForDevCount;
-      document.getElementById('stage-ready-for-testing-count').textContent = aggregatedDataset.stageReadyForTestingCount;
-      document.getElementById('stage-ready-for-uat-count').textContent = aggregatedDataset.stageReadyForUatCount;
-      document.getElementById('stage-resolved-count').textContent = aggregatedDataset.stageResolvedCount;
-      document.getElementById('stage-closed-count').textContent = aggregatedDataset.stageClosedCount;
-      document.getElementById('stage-reopened-count').textContent = aggregatedDataset.stageReopenedCount;
 
       const colors = generateColors(aggregatedDataset, colorPalette, colorMap);
 
@@ -670,6 +639,17 @@ export class HtmlReportRenderer {
     if (targetDataset) {
       renderTargetSunburst();
     }
+
+    // "Sprint Summary by Stages" is a rolling 30-day figure, unrelated to sprint selection —
+    // rendered once here and never touched by handleCheckboxChange.
+    document.getElementById('stage-total-tickets').textContent = stageSummaryDataset.totalIssues;
+    document.getElementById('stage-refined-count').textContent = stageSummaryDataset.refinedCount;
+    document.getElementById('stage-ready-for-dev-count').textContent = stageSummaryDataset.readyForDevCount;
+    document.getElementById('stage-ready-for-testing-count').textContent = stageSummaryDataset.readyForTestingCount;
+    document.getElementById('stage-ready-for-uat-count').textContent = stageSummaryDataset.readyForUatCount;
+    document.getElementById('stage-resolved-count').textContent = stageSummaryDataset.resolvedCount;
+    document.getElementById('stage-closed-count').textContent = stageSummaryDataset.closedCount;
+    document.getElementById('stage-reopened-count').textContent = stageSummaryDataset.reopenedCount;
   </script>
 </body>
 </html>`;
@@ -689,14 +669,6 @@ export class HtmlReportRenderer {
   private serializeMetricsDatasets(model: ReportModel): string {
     const datasetsObj: Record<number, unknown> = {};
     for (const [sprintId, dataset] of model.metricDatasets.entries()){
-      datasetsObj[sprintId] = dataset;
-    }
-    return JSON.stringify(datasetsObj);
-  }
-
-  private serializeStageSummaryDatasets(model: ReportModel): string {
-    const datasetsObj: Record<number, unknown> = {};
-    for (const [sprintId, dataset] of model.stageSummaryDatasets.entries()){
       datasetsObj[sprintId] = dataset;
     }
     return JSON.stringify(datasetsObj);

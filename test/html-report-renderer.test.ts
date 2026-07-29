@@ -23,7 +23,7 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
-      stageSummaryDatasets: new Map()
+      stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
     const html = renderer.render(model);
@@ -49,7 +49,7 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
-      stageSummaryDatasets: new Map()
+      stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
     const html = renderer.render(model);
@@ -73,7 +73,7 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
-      stageSummaryDatasets: new Map()
+      stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
     const html = renderer.render(model);
@@ -95,7 +95,7 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
-      stageSummaryDatasets: new Map()
+      stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
     const html = renderer.render(model);
@@ -115,7 +115,7 @@ describe('HtmlReportRenderer', () => {
       ],
       datasets: new Map(),
       metricDatasets: new Map(),
-      stageSummaryDatasets: new Map()
+      stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
     const html = renderer.render(model);
@@ -133,7 +133,7 @@ describe('HtmlReportRenderer', () => {
       sprints: [],
       datasets: new Map(),
       metricDatasets: new Map(),
-      stageSummaryDatasets: new Map()
+      stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
     const html = renderer.render(model);
@@ -155,7 +155,7 @@ describe('HtmlReportRenderer', () => {
       sprints: [],
       datasets: new Map(),
       metricDatasets: new Map(),
-      stageSummaryDatasets: new Map()
+      stageSummaryDataset: { totalIssues: 0, refinedCount: 0, readyForDevCount: 0, readyForTestingCount: 0, readyForUatCount: 0, resolvedCount: 0, closedCount: 0, reopenedCount: 0 }
     };
 
     const html = renderer.render(model);

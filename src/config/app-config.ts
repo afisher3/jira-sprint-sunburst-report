@@ -32,6 +32,7 @@ export interface AppConfig {
     resolvedStatusName: string;
     closedStatusName: string;
     reopenedStatusName: string;
+    projectKey: string;
   };
   window: {
     closed: number;

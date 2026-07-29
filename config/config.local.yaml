@@ -1,38 +1,38 @@
-# Base configuration for Jira Sprint Sunburst and Delivery Health Report
-# NEVER put secrets (OAuth credentials) in this file
-# Jira credentials are pulled from AWS Secrets Manager
+# Base configuration for Jira Sprint Sunburst Report
+# NEVER put secrets (OAuth credentials) in this file — use environment variables
+# Required env vars: JIRA_CLIENT_ID, JIRA_CLIENT_SECRET, BUCKET_NAME
 
 jira:
-  # Update the board ID to match the Jira board and field configuration
-  boardId: 1
+  # Update the board ID to match your board
+  boardId: 2
   # Resolve these via GET /rest/api/3/field, then update with actual IDs
-  storyPointsFieldId: customfield_10016
-  classificationFieldId: customfield_10000
+  storyPointsFieldId: customfield_10170
+  classificationFieldId: customfield_10256
   qaFailCountFieldId: customfield_10223
   uatFailCountFieldId: customfield_10224
   # Update these to match the exact name of the final status in each stage of your workflow
-  lastStatusOfRefinement: ""
-  lastStatusOfDev: ""
-  lastStatusOfQA: ""
-  lastStatusOfUAT: ""
+  lastStatusOfRefinement: "ready for dev"
+  lastStatusOfDev: "Ready for Testing"
+  lastStatusOfQA: "Ready for UAT"
+  lastStatusOfUAT: "Resolved"
   # Update these to match the exact status names used for the Sprint Summary by Stages counters
-  refinedStatusName: ""
-  readyForDevStatusName: ""
-  readyForTestingStatusName: ""
-  readyForUatStatusName: ""
-  resolvedStatusName: ""
-  closedStatusName: ""
-  reopenedStatusName: ""
+  refinedStatusName: "Refined"
+  readyForDevStatusName: "ready for dev"
+  readyForTestingStatusName: "Ready for Testing"
+  readyForUatStatusName: "Ready for UAT"
+  resolvedStatusName: "Resolved"
+  closedStatusName: "Closed"
+  reopenedStatusName: "Reopened"
   # Project key scoping the rolling 30-day "Sprint Summary by Stages" queries (not sprint-scoped)
-  projectKey: ""
+  projectKey: "ATHENA"
   authType: oauth
 
 window:
   closed: 3   # Number of most recently closed sprints to include
-  future: 3   # Number of upcoming sprints to include
+  future: 3   # Number of future sprints to include
 
 report:
-  showEmptyCategories: false  # Include categories with zero story points in the report
+  showEmptyCategories: false  # Show zero-valued categories in sunburst
   # Target classification percentages for ideal distribution comparison
   # Adjust these percentages to match your organization's goals
   targetClassifications:
@@ -71,8 +71,15 @@ report:
       level2: "Manual Testing"
       percentage: 5
 
-output:
-  type: local  # local | s3 (s3 requires the BUCKET_NAME env var)
-  path: ./out/report.html
 
-logLevel: "info"  # trace | debug | info | warn | error | fatal
+output:
+  # NOTE: ReportGenerator's Lambda path (src/app/report-generator.ts) does NOT read this
+  # value — it always uploads to S3 unless AWS_SAM_LOCAL=true (set automatically by
+  # `sam local invoke`), in which case it returns the HTML directly regardless of what's
+  # configured here. This file is deployed as-is into the real Lambda, so a config-driven
+  # switch here previously caused production runs to silently skip the S3 upload.
+  # This block is only consulted by the (currently unused/broken) cli.ts entry point.
+  type: s3
+  path: /tmp/report.html
+
+logLevel: info  # trace | debug | info | warn | error | fatal

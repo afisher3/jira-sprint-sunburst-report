@@ -58,6 +58,7 @@ export class ConfigLoader {
         resolvedStatusName: validatedConfig.jira.resolvedStatusName,
         closedStatusName: validatedConfig.jira.closedStatusName,
         reopenedStatusName: validatedConfig.jira.reopenedStatusName,
+        projectKey: validatedConfig.jira.projectKey,
         authType: validatedConfig.jira.authType,
         clientId: validatedKeys.client_id,
         clientSecret: validatedKeys.client_secret

@@ -118,10 +118,44 @@ export class ReportGenerator {
 
     this.logger.info({ sprintCount: windowedSprints.length }, 'Fetching issues for windowed sprints');
 
+    // "Sprint Summary by Stages" is a rolling 30-day view scoped to the project, independent
+    // of sprint selection/windowing — computed once, not per sprint.
+    const [
+      totalIssues,
+      refinedCount,
+      readyForDevCount,
+      readyForTestingCount,
+      readyForUatCount,
+      resolvedCount,
+      closedCount,
+      reopenedCount
+    ] = await Promise.all([
+      this.issueRepo.fetchTotalCountLast30Days(this.config.jira.projectKey),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.refinedStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.readyForDevStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.readyForTestingStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.readyForUatStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.resolvedStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.closedStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.reopenedStatusName)
+    ]);
+
+    const stageSummaryDataset: StageSummaryDataset = {
+      totalIssues,
+      refinedCount,
+      readyForDevCount,
+      readyForTestingCount,
+      readyForUatCount,
+      resolvedCount,
+      closedCount,
+      reopenedCount
+    };
+
+    this.logger.info({ ...stageSummaryDataset }, 'Rolling 30-day stage summary computed');
+
     // Fetch issues for each sprint and build sunburst datasets
     const datasets = new Map();
     const metricDatasets = new Map<number,MetricDataset>();
-    const stageSummaryDatasets = new Map<number, StageSummaryDataset>();
 
     for (const sprint of windowedSprints) {
       const issues = await this.issueRepo.fetchBySprint(sprint.id);
@@ -138,14 +172,7 @@ export class ReportGenerator {
         refinementThroughput,
         devThroughput,
         testingThroughput,
-        uatSignoffThroughput,
-        refinedCount,
-        readyForDevCount,
-        readyForTestingCount,
-        readyForUatCount,
-        resolvedCount,
-        closedCount,
-        reopenedCount] = await Promise.all([
+        uatSignoffThroughput] = await Promise.all([
         this.issueRepo.fetchReturnCountQA(sprint.id, this.config.jira.qaFailCountFieldId),
         this.issueRepo.fetchReturnCountUAT(sprint.id, this.config.jira.uatFailCountFieldId),
         this.issueRepo.fetchCountPastQA(sprint.id),
@@ -153,26 +180,8 @@ export class ReportGenerator {
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfRefinement),
         this.issueRepo.fetchDevThroughput(sprint.id),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id,this.config.jira.lastStatusOfQA),
-        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT),
-        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.refinedStatusName),
-        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.readyForDevStatusName),
-        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.readyForTestingStatusName),
-        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.readyForUatStatusName),
-        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.resolvedStatusName),
-        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.closedStatusName),
-        this.issueRepo.fetchStatusCountBySprint(sprint.id, this.config.jira.reopenedStatusName)
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT)
       ]);
-
-      const stageSummaryDataset: StageSummaryDataset = {
-        totalIssues: issues.length,
-        refinedCount,
-        readyForDevCount,
-        readyForTestingCount,
-        readyForUatCount,
-        resolvedCount,
-        closedCount,
-        reopenedCount
-      };
 
       const metricDataset = new MetricDataset(
         qaFailCount,
@@ -187,7 +196,6 @@ export class ReportGenerator {
 
       datasets.set(sprint.id, dataset);
       metricDatasets.set(sprint.id, metricDataset);
-      stageSummaryDatasets.set(sprint.id, stageSummaryDataset);
 
       this.logger.info({
         sprintId: sprint.id,
@@ -218,7 +226,7 @@ export class ReportGenerator {
       sprints: windowedSprints,
       datasets,
       metricDatasets,
-      stageSummaryDatasets,
+      stageSummaryDataset,
       targetDataset
     };
 

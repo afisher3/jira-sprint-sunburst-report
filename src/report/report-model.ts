@@ -15,6 +15,6 @@ export interface ReportModel {
   sprints: Sprint[];                               // Windowed sprint list for menu
   datasets: Map<number, SunburstDataset>;          // Sunburst data per sprint ID
   metricDatasets: Map<number, MetricDataset>;       // Metric data per sprint ID
-  stageSummaryDatasets: Map<number, StageSummaryDataset>; // Stage ticket counts per sprint ID
+  stageSummaryDataset: StageSummaryDataset;        // Rolling 30-day stage ticket counts (not sprint-scoped)
   targetDataset?: SunburstDataset;                 // Target/ideal distribution
 }
