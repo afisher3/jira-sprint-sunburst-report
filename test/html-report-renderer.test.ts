@@ -17,6 +17,7 @@ describe('HtmlReportRenderer', () => {
       title: 'Test Report',
       generatedAt: '2025-01-15T10:30:00Z',
       boardId: 42,
+      baseUrl: 'https://test.atlassian.net',
       sprints: [
         { id: 1, name: 'Sprint 1', state: 'active', startDate: '2025-01-01', endDate: '2025-01-14' },
         { id: 2, name: 'Sprint 2', state: 'closed', startDate: '2024-12-01', endDate: '2024-12-14', completeDate: '2024-12-14' }
@@ -44,6 +45,7 @@ describe('HtmlReportRenderer', () => {
       title: 'Test Report',
       generatedAt: '2025-01-15T10:30:00Z',
       boardId: 1,
+      baseUrl: 'https://test.atlassian.net',
       sprints: [
         { id: 1, name: 'Active Sprint', state: 'active', startDate: '2025-01-01' },
         { id: 2, name: 'Closed Sprint', state: 'closed', startDate: '2024-12-01', completeDate: '2024-12-14' },
@@ -69,6 +71,7 @@ describe('HtmlReportRenderer', () => {
       title: 'Test Report',
       generatedAt: '2025-01-15T10:30:00Z',
       boardId: 1,
+      baseUrl: 'https://test.atlassian.net',
       sprints: [
         { id: 1, name: 'Sprint 1', state: 'active', startDate: '2025-01-01' },
         { id: 2, name: 'Sprint 2', state: 'active', startDate: '2025-01-15' },
@@ -96,6 +99,7 @@ describe('HtmlReportRenderer', () => {
       title: 'Test Report',
       generatedAt: '2025-01-15T10:30:00Z',
       boardId: 1,
+      baseUrl: 'https://test.atlassian.net',
       sprints: [
         { id: 1, name: 'Sprint <script>alert("xss")</script>', state: 'active', startDate: '2025-01-01' }
       ],
@@ -118,6 +122,7 @@ describe('HtmlReportRenderer', () => {
       title: 'Test Report',
       generatedAt: '2025-01-15T10:30:00Z',
       boardId: 1,
+      baseUrl: 'https://test.atlassian.net',
       sprints: [
         { id: 1, name: 'Sprint 1', state: 'future' }
       ],
@@ -140,6 +145,7 @@ describe('HtmlReportRenderer', () => {
       title: 'Test Report',
       generatedAt: '2025-01-15T10:30:00Z',
       boardId: 1,
+      baseUrl: 'https://test.atlassian.net',
       sprints: [],
       datasets: new Map(),
       metricDatasets: new Map(),
@@ -164,6 +170,7 @@ describe('HtmlReportRenderer', () => {
       title: 'Test Report',
       generatedAt: '2025-01-15T10:30:00Z',
       boardId: 1,
+      baseUrl: 'https://test.atlassian.net',
       sprints: [],
       datasets: new Map(),
       metricDatasets: new Map(),

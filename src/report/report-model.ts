@@ -14,6 +14,7 @@ export interface ReportModel {
   title: string;
   generatedAt: string;
   boardId: number;
+  baseUrl: string;                                 // Jira Cloud base URL, for linking issue keys to their Jira page
   sprints: Sprint[];                               // Windowed sprint list for menu
   datasets: Map<number, SunburstDataset>;          // Sunburst data per sprint ID
   metricDatasets: Map<number, MetricDataset>;       // Metric data per sprint ID

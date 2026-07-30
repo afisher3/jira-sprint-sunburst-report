@@ -20,6 +20,7 @@ export class HtmlReportRenderer {
     const issuesBySprintJson = ReportDataSerializer.serializeIssuesBySprint(model);
     const throughputIssueKeysJson = ReportDataSerializer.serializeThroughputIssueKeys(model);
     const sprintNamesJson = ReportDataSerializer.serializeSprintNames(model);
+    const baseUrlJson = ReportDataSerializer.serializeBaseUrl(model);
 
     // Generate sprint checkboxes
     const sprintCheckboxes = model.sprints.map((sprint, index) => {
@@ -166,6 +167,9 @@ export class HtmlReportRenderer {
     }
     .table-container {
       margin-top: 15px;
+      border: 1px solid #dfe1e6;
+      border-radius: 8px;
+      overflow: hidden;
       overflow-x: auto;
     }
     .issues-table {
@@ -176,22 +180,75 @@ export class HtmlReportRenderer {
     .issues-table th,
     .issues-table td {
       text-align: left;
-      padding: 10px 12px;
-      border-bottom: 1px solid #dfe1e6;
+      padding: 10px 16px;
       white-space: nowrap;
     }
-    .issues-table th {
-      color: #6b778c;
+    .issues-table thead th {
+      background: #f4f5f7;
+      color: #44546f;
       text-transform: uppercase;
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      border-bottom: 2px solid #dfe1e6;
+    }
+    .issues-table tbody td {
+      border-bottom: 1px solid #ebecf0;
+      color: #172b4d;
+    }
+    .issues-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .issues-table tbody tr:nth-child(even) {
+      background: #fafbfc;
+    }
+    .issues-table tbody tr:hover {
+      background: #eef4ff;
     }
     .issues-table td.summary-cell {
       white-space: normal;
-      max-width: 500px;
+      max-width: 480px;
     }
-    .issues-table tbody tr:hover {
+    .issues-table td.key-cell {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+      font-weight: 600;
+    }
+    .issues-table td.key-cell a {
+      color: #0052cc;
+      text-decoration: none;
+    }
+    .issues-table td.key-cell a:hover {
+      text-decoration: underline;
+    }
+    .issues-table th.points-col,
+    .issues-table td.points-cell {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .status-badge-done {
+      background: #e3fcef;
+      color: #006644;
+    }
+    .status-badge-blocked {
+      background: #ffebe6;
+      color: #bf2600;
+    }
+    .status-badge-progress {
+      background: #deebff;
+      color: #0052cc;
+    }
+    .status-badge-neutral {
       background: #f4f5f7;
+      color: #42526e;
     }
     .stat-label {
       font-size: 12px;
@@ -204,6 +261,11 @@ export class HtmlReportRenderer {
       font-size: 24px;
       font-weight: 700;
       color: #172b4d;
+    }
+    .stat-value-unit {
+      font-size: 12px;
+      font-weight: 400;
+      color: #6b778c;
     }
     .stats-subtitle {
       font-size: 12px;
@@ -299,8 +361,8 @@ export class HtmlReportRenderer {
     </div>
 
     <div class="info-panel">
-      <h3>Throughput (in Story Points)</h3>
-      <h4>Click a card to filter the ticket table below to the issues behind that number.</h4>
+      <h3>Throughput</h3>
+      <h4>Ticket count (sum of story points). Click a card to filter the ticket table below to the issues behind that number.</h4>
       <div class="stats">
         <div class="stat-card stat-card-clickable" data-throughput-key="refinement">
           <div class="stat-label">Refinement Throughput</div>
@@ -322,14 +384,15 @@ export class HtmlReportRenderer {
     </div>
 
     <div class="info-panel">
-      <h3>Tickets <span class="stats-subtitle" id="tickets-filter-label"></span></h3>
+      <h3>Tickets<span id="tickets-count-label"></span></h3>
+      <h4 class="stats-subtitle" id="tickets-filter-label"></h4>
       <div class="table-container">
         <table class="issues-table">
           <thead>
             <tr>
               <th>Issue</th>
               <th>Summary</th>
-              <th>Story Points</th>
+              <th class="points-col">Story Points</th>
               <th>Status</th>
               <th>Sprint</th>
             </tr>
@@ -384,6 +447,7 @@ export class HtmlReportRenderer {
     // Issue keys behind each Throughput card, per sprint — used to filter the tickets table.
     const throughputIssueKeys = ${throughputIssueKeysJson};
     const sprintNames = ${sprintNamesJson};
+    const jiraBaseUrl = ${baseUrlJson};
 
     // Generate colors: each level 1 category gets a distinct color, level 2 children get lighter shades
       const colorPalette = [
@@ -442,6 +506,10 @@ export class HtmlReportRenderer {
       let totalUATFailCount = 0;
       let totalPastQACount = 0;
       let totalPastUATCount = 0;
+      let totalDevThroughputCount = 0;
+      let totalRefinementThroughputCount = 0;
+      let totalQAThroughputCount = 0;
+      let totalUATThroughputCount = 0;
 
       for (const dataset of selectedDatasets) {
         totalIssueCount += dataset.issueCount;
@@ -476,6 +544,17 @@ export class HtmlReportRenderer {
         totalUATFailCount += metricDataset.uatFailCount;
         totalPastQACount += metricDataset.pastQACount;
         totalPastUATCount += metricDataset.pastUATCount;
+      }
+
+      // Ticket counts behind each throughput number, sourced from the same issue-key lists
+      // used to filter the tickets table when a throughput card is clicked.
+      for (const sprintId of sprintIds) {
+        const keys = throughputIssueKeys[sprintId];
+        if (!keys) continue;
+        totalRefinementThroughputCount += (keys.refinement || []).length;
+        totalDevThroughputCount += (keys.dev || []).length;
+        totalQAThroughputCount += (keys.qa || []).length;
+        totalUATThroughputCount += (keys.uatSignoff || []).length;
       }
 
       // Convert map back to arrays
@@ -516,12 +595,22 @@ export class HtmlReportRenderer {
         refinementThroughput: totalRefinementThroughput,
         qaThroughput: totalQAThroughput,
         uatThroughput: totalUATThroughput,
+        devThroughputCount: totalDevThroughputCount,
+        refinementThroughputCount: totalRefinementThroughputCount,
+        qaThroughputCount: totalQAThroughputCount,
+        uatThroughputCount: totalUATThroughputCount,
         qaReturnRate: qaReturnRate,
         uatReturnRate: uatReturnRate
         };
     }
 
     // Render sunburst chart for aggregated data
+    // Renders "<count> (<points>) pts" with "pts" as smaller subtext
+    function setThroughputValue(elementId, count, points) {
+      document.getElementById(elementId).innerHTML =
+        count + ' (' + points + ' <span class="stat-value-unit">pts</span> )';
+    }
+
     function renderSunburst(aggregatedDataset) {
       if (!aggregatedDataset || aggregatedDataset.ids.length === 0) {
         document.getElementById('sunburst').style.display = 'none';
@@ -529,10 +618,10 @@ export class HtmlReportRenderer {
         document.getElementById('total-points').textContent = '0';
         document.getElementById('issue-count').textContent = '0';
         document.getElementById('category-count').textContent = '0';
-        document.getElementById('dev-throughput').textContent = '0';
-        document.getElementById('refinement-throughput').textContent = '0';
-        document.getElementById('qa-throughput').textContent = '0';
-        document.getElementById('uat-throughput').textContent = '0';
+        setThroughputValue('dev-throughput', 0, 0);
+        setThroughputValue('refinement-throughput', 0, 0);
+        setThroughputValue('qa-throughput', 0, 0);
+        setThroughputValue('uat-throughput', 0, 0);
         document.getElementById('qa-return-rate').textContent = '0';
         document.getElementById('uat-return-rate').textContent = '0';
         return;
@@ -553,10 +642,11 @@ export class HtmlReportRenderer {
       document.getElementById('total-points').textContent = totalPoints.toFixed(1);
       document.getElementById('issue-count').textContent = aggregatedDataset.issueCount;
       document.getElementById('category-count').textContent = categoryCount;
-      document.getElementById('dev-throughput').textContent = aggregatedDataset.devThroughput;
-      document.getElementById('refinement-throughput').textContent = aggregatedDataset.refinementThroughput;
-      document.getElementById('qa-throughput').textContent = aggregatedDataset.qaThroughput;
-      document.getElementById('uat-throughput').textContent = aggregatedDataset.uatThroughput;
+      // innerHTML is safe here — every interpolated value is a number, never free text
+      setThroughputValue('dev-throughput', aggregatedDataset.devThroughputCount, aggregatedDataset.devThroughput);
+      setThroughputValue('refinement-throughput', aggregatedDataset.refinementThroughputCount, aggregatedDataset.refinementThroughput);
+      setThroughputValue('qa-throughput', aggregatedDataset.qaThroughputCount, aggregatedDataset.qaThroughput);
+      setThroughputValue('uat-throughput', aggregatedDataset.uatThroughputCount, aggregatedDataset.uatThroughput);
       document.getElementById('qa-return-rate').textContent = aggregatedDataset.qaReturnRate + '%';
       document.getElementById('uat-return-rate').textContent = aggregatedDataset.uatReturnRate + '%';
 
@@ -724,11 +814,26 @@ export class HtmlReportRenderer {
       return keySet;
     }
 
+    function buildJiraIssueUrl(issueKey) {
+      return jiraBaseUrl + '/browse/' + issueKey;
+    }
+
+    // Bucket a Jira status string into a badge color — a heuristic since status names are
+    // org-defined free text (and may be localized), not a fixed enum.
+    function statusBadgeClass(status) {
+      const s = (status || '').toLowerCase();
+      if (/(resolved|closed|done|已解决|已关闭)/.test(s)) return 'status-badge-done';
+      if (/(block|reopen)/.test(s)) return 'status-badge-blocked';
+      if (/(progress|testing|review|refin|ready|正在进行)/.test(s)) return 'status-badge-progress';
+      return 'status-badge-neutral';
+    }
+
     // Render the tickets table body from a list of issue rows (DOM APIs, not innerHTML,
     // so issue summaries/statuses from Jira never get interpreted as markup)
     function renderIssuesTable(issueRows) {
       const tbody = document.getElementById('issues-table-body');
       const emptyState = document.getElementById('issues-table-empty');
+      document.getElementById('tickets-count-label').textContent = ' - ' + issueRows.length;
       tbody.innerHTML = '';
 
       if (issueRows.length === 0) {
@@ -741,7 +846,13 @@ export class HtmlReportRenderer {
         const row = document.createElement('tr');
 
         const keyCell = document.createElement('td');
-        keyCell.textContent = issue.key;
+        keyCell.className = 'key-cell';
+        const keyLink = document.createElement('a');
+        keyLink.href = buildJiraIssueUrl(issue.key);
+        keyLink.target = '_blank';
+        keyLink.rel = 'noopener noreferrer';
+        keyLink.textContent = issue.key;
+        keyCell.appendChild(keyLink);
         row.appendChild(keyCell);
 
         const summaryCell = document.createElement('td');
@@ -750,11 +861,15 @@ export class HtmlReportRenderer {
         row.appendChild(summaryCell);
 
         const pointsCell = document.createElement('td');
+        pointsCell.className = 'points-cell';
         pointsCell.textContent = issue.storyPoints;
         row.appendChild(pointsCell);
 
         const statusCell = document.createElement('td');
-        statusCell.textContent = issue.status;
+        const statusBadge = document.createElement('span');
+        statusBadge.className = 'status-badge ' + statusBadgeClass(issue.status);
+        statusBadge.textContent = issue.status;
+        statusCell.appendChild(statusBadge);
         row.appendChild(statusCell);
 
         const sprintCell = document.createElement('td');

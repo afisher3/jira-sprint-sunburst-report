@@ -236,6 +236,7 @@ export class ReportGenerator {
       title: 'Jira Sprint Sunburst Report',
       generatedAt: new Date().toISOString(),
       boardId: this.config.jira.boardId,
+      baseUrl: this.config.jira.baseUrl,
       sprints: windowedSprints,
       datasets,
       metricDatasets,
