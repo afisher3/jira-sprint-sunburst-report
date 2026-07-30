@@ -91,7 +91,8 @@ describe('HtmlReportRenderer', () => {
     expect(html).toContain('Sprint Details');
     expect(html).toContain('Total Story Points');
     expect(html).toContain('Issues');
-    expect(html).toContain('Categories');
+    expect(html).toContain('Stale Tickets');
+    expect(html).toContain('Rollover Tickets');
   });
 
   it('should escape HTML special characters in sprint names', () => {
