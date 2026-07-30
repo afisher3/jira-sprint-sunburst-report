@@ -36,40 +36,108 @@ report:
   # Target classification percentages for ideal distribution comparison
   # Adjust these percentages to match your organization's goals
   targetClassifications:
-    # App Development
+    # App Dev
+    - level1: "App Dev"
+      level2: "Fix"
+      percentage: 6
+    - level1: "App Dev"
+      level2: "Change / Update"
+      percentage: 6
     - level1: "App Dev"
       level2: "New Feature"
-      percentage: 25
+      percentage: 8
     - level1: "App Dev"
-      level2: "Enhancement"
-      percentage: 15
+      level2: "Testing"
+      percentage: 4
     - level1: "App Dev"
-      level2: "Bug Fix"
-      percentage: 10
+      level2: "Business Automation"
+      percentage: 3
+    - level1: "App Dev"
+      level2: "Performance Optimization"
+      percentage: 3
+    # Ops
+    - level1: "Ops"
+      level2: "Playbook"
+      percentage: 3
+    - level1: "Ops"
+      level2: "Ad hoc task"
+      percentage: 2
+    - level1: "Ops"
+      level2: "General IT request"
+      percentage: 3
+    - level1: "Ops"
+      level2: "Tools / Shared Services"
+      percentage: 3
+    - level1: "Ops"
+      level2: "Automation / CICD"
+      percentage: 3
+    - level1: "Ops"
+      level2: "Prod Investigation"
+      percentage: 3
+    - level1: "Ops"
+      level2: "Ops Roadmap"
+      percentage: 2
+    - level1: "Ops"
+      level2: "Deployment"
+      percentage: 3
+    - level1: "Ops"
+      level2: "Regression Testing"
+      percentage: 3
+    - level1: "Ops"
+      level2: "Performance Testing"
+      percentage: 2
+    - level1: "Ops"
+      level2: "Monitoring"
+      percentage: 3
     # Infrastructure
     - level1: "Infrastructure"
-      level2: "Performance"
-      percentage: 10
+      level2: "Maintenance & Improvements"
+      percentage: 4
     - level1: "Infrastructure"
-      level2: "Security"
-      percentage: 10
+      level2: "Disaster Recovery"
+      percentage: 3
     - level1: "Infrastructure"
+      level2: "AWS Infra Change"
+      percentage: 3
+    - level1: "Infrastructure"
+      level2: "Data Management"
+      percentage: 3
+    - level1: "Infrastructure"
+      level2: "DB Maintenance"
+      percentage: 3
+    - level1: "Infrastructure"
+      level2: "DW"
+      percentage: 2
+    - level1: "Infrastructure"
+      level2: "AWS Data Management"
+      percentage: 2
+    # Security
+    - level1: "Security"
+      level2: "Remediation"
+      percentage: 3
+    - level1: "Security"
+      level2: "Compliance"
+      percentage: 3
+    - level1: "Security"
+      level2: "Enhancement"
+      percentage: 2
+    - level1: "Security"
       level2: "Maintenance"
-      percentage: 5
-    # Documentation
-    - level1: "Documentation"
-      level2: "User Docs"
-      percentage: 10
-    - level1: "Documentation"
-      level2: "Technical Docs"
-      percentage: 5
-    # Testing
-    - level1: "Testing"
-      level2: "Automated Tests"
-      percentage: 5
-    - level1: "Testing"
-      level2: "Manual Testing"
-      percentage: 5
+      percentage: 2
+    # Knowledge Management
+    - level1: "Knowledge Management"
+      level2: "Technical Documentation"
+      percentage: 3
+    - level1: "Knowledge Management"
+      level2: "Process Update"
+      percentage: 2
+    # Project Work
+    - level1: "Project Work"
+      level2: "Planned Project Work"
+      percentage: 3
+    - level1: "Project Work"
+      level2: "Unplanned Project Work"
+      percentage: 2
 
 
 output:
