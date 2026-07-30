@@ -226,6 +226,49 @@ export class HtmlReportRenderer {
       font-variant-numeric: tabular-nums;
       font-weight: 600;
     }
+    .issues-table th[data-sort-key] {
+      cursor: pointer;
+      user-select: none;
+    }
+    .issues-table th[data-sort-key]:hover {
+      background: #eaecf0;
+    }
+    .issues-table th.sort-active {
+      color: #0052cc;
+    }
+    .sort-indicator {
+      display: inline-block;
+      width: 10px;
+      margin-left: 4px;
+      font-size: 10px;
+      color: #0052cc;
+    }
+    .accordion-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #172b4d;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .accordion-toggle:hover {
+      color: #0052cc;
+    }
+    .accordion-chevron {
+      display: inline-block;
+      color: #6b778c;
+      font-size: 30px;
+      transition: transform 0.15s ease;
+    }
+    .accordion-toggle[aria-expanded="false"] .accordion-chevron {
+      transform: rotate(-90deg);
+    }
     .status-badge {
       display: inline-block;
       padding: 3px 10px;
@@ -384,22 +427,28 @@ export class HtmlReportRenderer {
     </div>
 
     <div class="info-panel">
-      <h3>Tickets<span id="tickets-count-label"></span></h3>
-      <h4 class="stats-subtitle" id="tickets-filter-label"></h4>
-      <div class="table-container">
-        <table class="issues-table">
-          <thead>
-            <tr>
-              <th>Issue</th>
-              <th>Summary</th>
-              <th class="points-col">Story Points</th>
-              <th>Status</th>
-              <th>Sprint</th>
-            </tr>
-          </thead>
-          <tbody id="issues-table-body"></tbody>
-        </table>
-        <p class="empty-state" id="issues-table-empty" style="display: none;">No tickets to show.</p>
+      <button type="button" class="accordion-toggle" id="tickets-toggle" aria-expanded="true" aria-controls="tickets-body">
+        <span class="accordion-chevron">&#9662;</span>
+        <span id="tickets-toggle-expanded-text">Tickets<span id="tickets-count-label"></span></span>
+        <span id="tickets-toggle-collapsed-text" style="display: none;">Table of issues</span>
+      </button>
+      <div id="tickets-body">
+        <h4 class="stats-subtitle" id="tickets-filter-label"></h4>
+        <div class="table-container">
+          <table class="issues-table">
+            <thead>
+              <tr>
+                <th data-sort-key="key">Issue<span class="sort-indicator"></span></th>
+                <th data-sort-key="summary">Summary<span class="sort-indicator"></span></th>
+                <th class="points-col" data-sort-key="storyPoints">Story Points<span class="sort-indicator"></span></th>
+                <th data-sort-key="status">Status<span class="sort-indicator"></span></th>
+                <th data-sort-key="sprintName">Sprint<span class="sort-indicator"></span></th>
+              </tr>
+            </thead>
+            <tbody id="issues-table-body"></tbody>
+          </table>
+          <p class="empty-state" id="issues-table-empty" style="display: none;">No tickets to show.</p>
+        </div>
       </div>
     </div>
 
@@ -608,7 +657,7 @@ export class HtmlReportRenderer {
     // Renders "<count> (<points>) pts" with "pts" as smaller subtext
     function setThroughputValue(elementId, count, points) {
       document.getElementById(elementId).innerHTML =
-        count + ' (' + points + ' <span class="stat-value-unit">pts</span> )';
+        count + ' tickets (' + points + ' pts )';
     }
 
     function renderSunburst(aggregatedDataset) {
@@ -828,6 +877,39 @@ export class HtmlReportRenderer {
       return 'status-badge-neutral';
     }
 
+    // Column sort state for the tickets table — persists across filter/sprint-selection changes
+    let sortColumn = null;
+    let sortDirection = 'asc';
+
+    function sortIssueRows(issueRows) {
+      if (!sortColumn) return issueRows;
+      const sorted = issueRows.slice().sort((a, b) => {
+        const av = a[sortColumn];
+        const bv = b[sortColumn];
+        if (typeof av === 'number' && typeof bv === 'number') return av - bv;
+        return String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
+      });
+      return sortDirection === 'asc' ? sorted : sorted.reverse();
+    }
+
+    function updateSortIndicators() {
+      document.querySelectorAll('.issues-table th[data-sort-key]').forEach(th => {
+        const isActive = th.dataset.sortKey === sortColumn;
+        th.classList.toggle('sort-active', isActive);
+        th.querySelector('.sort-indicator').textContent = isActive ? (sortDirection === 'asc' ? '▲' : '▼') : '';
+      });
+    }
+
+    document.querySelectorAll('.issues-table th[data-sort-key]').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sortKey;
+        sortDirection = sortColumn === key && sortDirection === 'asc' ? 'desc' : 'asc';
+        sortColumn = key;
+        updateSortIndicators();
+        updateIssuesTable();
+      });
+    });
+
     // Render the tickets table body from a list of issue rows (DOM APIs, not innerHTML,
     // so issue summaries/statuses from Jira never get interpreted as markup)
     function renderIssuesTable(issueRows) {
@@ -842,7 +924,7 @@ export class HtmlReportRenderer {
       }
       emptyState.style.display = 'none';
 
-      for (const issue of issueRows) {
+      for (const issue of sortIssueRows(issueRows)) {
         const row = document.createElement('tr');
 
         const keyCell = document.createElement('td');
@@ -921,6 +1003,19 @@ export class HtmlReportRenderer {
     // Attach event listeners to all checkboxes
     document.querySelectorAll('.sprint-checkbox input[type="checkbox"]').forEach(checkbox => {
       checkbox.addEventListener('change', handleCheckboxChange);
+    });
+
+    // Tickets section collapse/expand toggle
+    const ticketsToggle = document.getElementById('tickets-toggle');
+    const ticketsBody = document.getElementById('tickets-body');
+    const ticketsExpandedText = document.getElementById('tickets-toggle-expanded-text');
+    const ticketsCollapsedText = document.getElementById('tickets-toggle-collapsed-text');
+    ticketsToggle.addEventListener('click', () => {
+      const expanded = ticketsToggle.getAttribute('aria-expanded') === 'true';
+      ticketsToggle.setAttribute('aria-expanded', String(!expanded));
+      ticketsBody.style.display = expanded ? 'none' : '';
+      ticketsExpandedText.style.display = expanded ? 'none' : '';
+      ticketsCollapsedText.style.display = expanded ? '' : 'none';
     });
 
     // Initial render
