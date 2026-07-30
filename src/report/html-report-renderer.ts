@@ -427,6 +427,21 @@ export class HtmlReportRenderer {
     </div>
 
     <div class="info-panel">
+      <h3>Return Rates</h3>
+      <h4>Percentage of issues sent back after QA/UAT. Click a card to filter the ticket table below to the issues behind that number.</h4>
+      <div class="stats">
+        <div class="stat-card stat-card-clickable" data-throughput-key="qaReturn">
+          <div class="stat-label">QA Return Rate</div>
+          <div class="stat-value" id="qa-return-rate">0</div>
+        </div>
+        <div class="stat-card stat-card-clickable" data-throughput-key="uatReturn">
+          <div class="stat-label">UAT Return Rate</div>
+          <div class="stat-value" id="uat-return-rate">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-panel">
       <button type="button" class="accordion-toggle" id="tickets-toggle" aria-expanded="true" aria-controls="tickets-body">
         <span class="accordion-chevron">&#9662;</span>
         <span id="tickets-toggle-expanded-text">Tickets<span id="tickets-count-label"></span></span>
@@ -448,20 +463,6 @@ export class HtmlReportRenderer {
             <tbody id="issues-table-body"></tbody>
           </table>
           <p class="empty-state" id="issues-table-empty" style="display: none;">No tickets to show.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="info-panel">
-      <h3>Return Rates</h3>
-      <div class="stats">
-        <div class="stat-card">
-          <div class="stat-label">QA Return Rate</div>
-          <div class="stat-value" id="qa-return-rate">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">UAT Return Rate</div>
-          <div class="stat-value" id="uat-return-rate">0</div>
         </div>
       </div>
     </div>
@@ -833,7 +834,9 @@ export class HtmlReportRenderer {
       refinement: 'Refinement Throughput',
       dev: 'Dev Throughput',
       qa: 'QA Throughput',
-      uatSignoff: 'UAT Signoff Throughput'
+      uatSignoff: 'UAT Signoff Throughput',
+      qaReturn: 'QA Return Rate',
+      uatReturn: 'UAT Return Rate'
     };
 
     let activeThroughputFilter = null;

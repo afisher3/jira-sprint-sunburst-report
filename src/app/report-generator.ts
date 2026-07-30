@@ -169,8 +169,8 @@ export class ReportGenerator {
       );
 
       // Fetch data for metrics
-      const [qaFailCount,
-        uatFailCount,
+      const [qaFailResult,
+        uatFailResult,
         pastQACount,
         pastUATCount,
         refinementResult,
@@ -188,8 +188,8 @@ export class ReportGenerator {
       ]);
 
       const metricDataset = new MetricDataset(
-        qaFailCount,
-        uatFailCount,
+        qaFailResult.issueKeys.length,
+        uatFailResult.issueKeys.length,
         pastQACount,
         pastUATCount,
         refinementResult.totalStoryPoints,
@@ -202,7 +202,9 @@ export class ReportGenerator {
         refinement: refinementResult.issueKeys,
         dev: devResult.issueKeys,
         qa: qaResult.issueKeys,
-        uatSignoff: uatResult.issueKeys
+        uatSignoff: uatResult.issueKeys,
+        qaReturn: qaFailResult.issueKeys,
+        uatReturn: uatFailResult.issueKeys
       };
 
       datasets.set(sprint.id, dataset);

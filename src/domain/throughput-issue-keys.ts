@@ -7,4 +7,6 @@ export interface ThroughputIssueKeys {
   dev: string[];
   qa: string[];
   uatSignoff: string[];
+  qaReturn: string[];
+  uatReturn: string[];
 }

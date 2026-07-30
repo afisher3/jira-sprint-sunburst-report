@@ -276,11 +276,11 @@ export class IssueRepository {
         return issueCount;
     }
 
-    async fetchReturnCountQA(sprintId: number, qaFailCountFieldId: string): Promise<number>{
-      //Fetch the count of issues that have been reopened
+    async fetchReturnCountQA(sprintId: number, qaFailCountFieldId: string): Promise<ThroughputResult>{
+      //Fetch the issues that have been reopened after QA
       const jql = `sprint = ${sprintId} AND "QA Fail Count[Number]" > 0`;
       let nextPageToken: string | undefined = undefined;
-      let issueCount = 0;
+      const issueKeys: string[] = [];
       while (true){
         const response = await this.client.searchJql<JiraSearchResponse>(
           jql,
@@ -288,23 +288,23 @@ export class IssueRepository {
           nextPageToken
         );
 
-        issueCount += response.issues.length;
-        
+        issueKeys.push(...response.issues.map((issue: JiraIssue) => issue.key));
+
         if (!response.nextPageToken){
           break;
         }
         nextPageToken = response.nextPageToken;
       }
-      this.logger.info(`${issueCount} issues found that were reopened after QA in sprint ${sprintId}`)
-      
-      return issueCount;
+      this.logger.info(`${issueKeys.length} issues found that were reopened after QA in sprint ${sprintId}`)
+
+      return { totalStoryPoints: 0, issueKeys };
     }
 
-    async fetchReturnCountUAT(sprintId: number, uatFailCountFieldId: string): Promise<number>{
-      //Fetch the count of issues that have been reopened
+    async fetchReturnCountUAT(sprintId: number, uatFailCountFieldId: string): Promise<ThroughputResult>{
+      //Fetch the issues that have been reopened after UAT
       const jql = `sprint = ${sprintId} AND "UAT Fail Count[Number]" > 0`;
       let nextPageToken: string | undefined = undefined;
-      let issueCount = 0;
+      const issueKeys: string[] = [];
       while (true){
         const response = await this.client.searchJql<JiraSearchResponse>(
           jql,
@@ -312,15 +312,15 @@ export class IssueRepository {
           nextPageToken
         );
 
-        issueCount += response.issues.length;
-        
+        issueKeys.push(...response.issues.map((issue: JiraIssue) => issue.key));
+
         if (!response.nextPageToken){
           break;
         }
         nextPageToken = response.nextPageToken;
       }
-      this.logger.info(`${issueCount} issues found that were reopened after UAT in sprint ${sprintId}`)
-      return issueCount;
+      this.logger.info(`${issueKeys.length} issues found that were reopened after UAT in sprint ${sprintId}`)
+      return { totalStoryPoints: 0, issueKeys };
     }
   
   

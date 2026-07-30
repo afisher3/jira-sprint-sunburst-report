@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. Read this whole file before making changes — it captures hard-won lessons (past production incidents, rejected designs) that aren't visible from the code alone.
+
+For a shorter token-efficient refresher on a subsequent session (once you've already read this file once), see `CLAUDE.compact.md`. For two recurring workflows, use the project skills in `.claude/skills/`: `build-and-test` (build + test loop, with the sandbox caveat) and `add-filterable-stat-card` (the recipe for adding a new clickable stat card that filters the tickets table by issue key — the pattern behind both the Throughput and Return Rate cards).
 
 ## Project Overview
 
@@ -80,8 +82,11 @@ src/
                                   counts, throughput story points per stage
     stage-summary-dataset.ts     Rolling 30-day, project-scoped ticket counts by stage
                                   (NOT sprint-scoped, NOT affected by sprint checkboxes)
-    throughput-issue-keys.ts     Issue keys backing each Throughput card, per sprint —
-                                  used client-side to filter the tickets table by click
+    throughput-issue-keys.ts     Issue keys backing every clickable stat card (Throughput:
+                                  refinement/dev/qa/uatSignoff, Return Rates: qaReturn/
+                                  uatReturn), per sprint — used client-side to filter the
+                                  tickets table by click. Despite the filename, this now
+                                  backs both panels; see "Ticket-table filtering model" below
     target-sunburst-generator.ts Generates the "target distribution" sunburst from config
   report/
     report-model.ts               ReportModel — everything HtmlReportRenderer needs
@@ -125,7 +130,10 @@ Only `/tmp` is writable in a Lambda sandbox (real or `sam local invoke`) — `/v
 6. Output: if `AWS_SAM_LOCAL==='true'`, return the HTML string directly; otherwise upload to S3 (`Key: "metrics-report"`). Logs are uploaded alongside as `metrics-report.log` in a `finally` block (so they're captured even on failure) unless running locally, where they've already gone to stdout.
 
 ### Ticket-table filtering model (important, easy to get backwards)
-The tickets table shows the full per-sprint issue list for the selected sprints. Clicking a Throughput card filters that table down to the issue **keys** returned by that stage's JQL query — **not** by each issue's current status. An issue's current status is only ever displayed as a column value, never used as a filter predicate. (An earlier design that filtered by current status was explicitly rejected — current status doesn't reflect "did this issue pass through this stage at some point," which is what the throughput cards actually measure.)
+The tickets table shows the full per-sprint issue list for the selected sprints. Clicking any clickable stat card — every card with class `stat-card-clickable` and a `data-throughput-key` attribute, which today spans both the Throughput panel (`refinement`/`dev`/`qa`/`uatSignoff`) and the Return Rates panel (`qaReturn`/`uatReturn`) — filters that table down to the issue **keys** returned by that stage's JQL query — **not** by each issue's current status. An issue's current status is only ever displayed as a column value, never used as a filter predicate. (An earlier design that filtered by current status was explicitly rejected — current status doesn't reflect "did this issue pass through this stage at some point," which is what these cards actually measure.) This mechanism is fully generic client-side: `getThroughputKeySet()`/`updateIssuesTable()`/the card click handler all key off `data-throughput-key` and the matching field on `throughputIssueKeys[sprintId]`, so a brand-new clickable card needs no new client-JS logic — see `add-filterable-stat-card` in `.claude/skills/`.
+
+### Tickets table: sorting and collapse
+Every column header (`<th data-sort-key="...">` for `key`/`summary`/`storyPoints`/`status`/`sprintName`) is clickable to sort the table — client-side only (`sortColumn`/`sortDirection` module state in the inline script, applied inside `renderIssuesTable` so it survives filter/sprint changes), no server round-trip. The whole Tickets panel is collapsible via a single `<button id="tickets-toggle">`: its visible label switches between "Tickets - N" (`#tickets-toggle-expanded-text`, expanded) and "Table of issues" (`#tickets-toggle-collapsed-text`, collapsed) by toggling `display` on two sibling spans — **do not** overwrite the button's `textContent` directly, since `#tickets-count-label` is nested inside the expanded-text span and is looked up by `renderIssuesTable` regardless of collapsed state; replacing the button's content would null out that lookup.
 
 ## Domain Rules (Implement Exactly)
 
@@ -155,6 +163,9 @@ Group windowed issues per sprint by `(level1, level2)`, sum story points, emit P
 - Two-level hierarchy: Level 1 nodes (parent = ""), Level 2 nodes (parent = Level 1 id)
 - Use stable IDs (e.g. `L1` and `L1|L2`)
 - Default: include only categories present in the sprint. Config flag `report.showEmptyCategories` (default false) controls whether to show empty branches.
+
+### Sunburst color matching (actual vs. target chart)
+Both sunbursts share one client-side `generateColors()` (in `html-report-renderer.ts`) so the same level1 category renders in the same color on both charts. Matching is done **by label text**, via a hardcoded `colorMap` (level1 name → hex), not by array position or by id — actual-chart ids are raw `"level1|level2"` strings while target-chart ids are alphanumeric-sanitized, so positional/id-based matching would silently desync the two charts. `colorMap` must be kept in sync with whatever level1 names actually appear in the live Jira classification field / `config.local.yaml`'s `targetClassifications`; any level1 name not in `colorMap` still renders (falls back to a positional palette color), it just isn't guaranteed to match between the two charts. **Past bug:** the label lookup was once `dataset.label` (doesn't exist — should be `dataset.labels[i]`) with an undeclared `label` variable, so it silently always missed the map and fell back to positional colors; the two charts only looked right by coincidence (same categories, same alphabetical order). If actual/target colors ever look mismatched again, check this lookup first before assuming a data problem.
 
 ### Status-name config is exact-string, case-sensitive JQL text
 Every `*StatusName`/`lastStatusOf*` config value must match the exact Jira status string (JQL string matching inside `Status changed to "..."` is effectively what's being compared). A past real bug: `readyForDevStatusName: "Ready for Dev"` silently returned 0 because the actual Jira status was lowercase `"ready for dev"`. If a stage summary/throughput count looks wrong, check `config/config.local.yaml` against the live Jira workflow's exact status names before assuming a code bug — the report log (`./out/report.log` locally) includes the resolved JQL and counts.
@@ -209,7 +220,16 @@ window:
   future: 3
 report:
   showEmptyCategories: false
-  targetClassifications: [...]                 # optional target-distribution comparison
+  targetClassifications:                       # optional target-distribution comparison
+    - level1: "App Dev"                        # level1 values here should exactly match
+      level2: "New Feature"                    # the live Jira classification field's
+      percentage: 8                            # top-level categories — see "Sunburst
+    - ...                                       # color matching" below. Percentages
+                                                # across ALL entries must sum to exactly
+                                                # 100 (TargetSunburstGenerator throws
+                                                # otherwise). Current live categories:
+                                                # App Dev, Ops, Infrastructure, Security,
+                                                # Knowledge Management, Project Work.
 output:
   type: s3                                     # NOTE: unused by the real Lambda path, see below
   path: /tmp/report.html                       # only consulted by the unused cli.ts
@@ -227,7 +247,7 @@ Config files:
 
 ## Report Rendering & Client-Side Behavior (`HtmlReportRenderer`)
 
-The entire report — HTML, CSS, and client-side JS (Plotly sunburst rendering, sprint-checkbox aggregation, throughput-card click filtering) — is one self-contained template-literal string with no external file dependencies. This is intentional (single portable artifact uploaded to S3); a prior request to split the report's *data* into separate `.js` files was scoped down to "source-code organization only" (`ReportDataSerializer` as a separate module) with the actual HTML output remaining a single file.
+The entire report — HTML, CSS, and client-side JS (Plotly sunburst rendering, sprint-checkbox aggregation, clickable-stat-card filtering, table sorting/collapse) — is one self-contained template-literal string with no external file dependencies. This is intentional (single portable artifact uploaded to S3); a prior request to split the report's *data* into separate `.js` files was scoped down to "source-code organization only" (`ReportDataSerializer` as a separate module) with the actual HTML output remaining a single file.
 
 ### XSS / script-injection safety
 Every piece of ReportModel data embedded into the report's `<script>` tag goes through `ReportDataSerializer`'s private `toScriptSafeJson()` (`JSON.stringify(value).replace(/</g, '\\u003c')`). `JSON.stringify` does not escape `<`, so free text sourced from Jira (issue summaries, sprint names) could otherwise contain a literal `</script>` that breaks out of the tag. **Any new data embedded into the report must go through this same helper** — do not call `JSON.stringify` directly in `html-report-renderer.ts`.
@@ -261,7 +281,7 @@ Key test coverage:
 - `selectWindow`: exact slicing rule against fixture sprints
 - `ClassificationParser`: normal, level1-only, blank, odd spacing
 - `SunburstAggregator`: correct group/sum and parent/child structure
-- `HtmlReportRenderer`: rendering across various `ReportModel` fixtures, including an HTML-escaping/script-injection regression test (sprint name containing `<script>...</script>`) — if you add a new embedded data field, add/extend a fixture here rather than assuming existing coverage extends to it
+- `HtmlReportRenderer`: rendering across various `ReportModel` fixtures, including an HTML-escaping/script-injection regression test (sprint name containing `<script>...</script>`) — if you add a new embedded data field, add/extend a fixture here rather than assuming existing coverage extends to it. Test fixtures use empty `Map()`s for `throughputIssueKeysBySprint`, so extending `ThroughputIssueKeys` with new fields (e.g. `qaReturn`/`uatReturn`) doesn't require fixture changes by itself — only add a fixture if you're testing that field's actual behavior.
 - Golden test: fixture through parse + aggregate → assert expected rollup
 
 Note: on this machine, `vitest`/`npm test` can fail under the sandboxed shell due to a macOS code-signing restriction on the native Rollup binary (`ERR_DLOPEN_FAILED`) — not a real test failure; re-run with sandboxing disabled if you hit this.
