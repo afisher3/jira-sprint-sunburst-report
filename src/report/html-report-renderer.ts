@@ -516,11 +516,10 @@ export class HtmlReportRenderer {
       const colorMap = new Map([
         ['App Dev', '#0052cc'],
         ['Ops', '#36b37e'],
-        ['Security', '#ff5630'],
         ['Infrastructure', '#ffab00'],
+        ['Security', '#ff5630'],
         ['Knowledge Management', '#6554c0'],
-        ['Documentation', '#00b8d9'],
-        ['Testing', '#ff8b00']
+        ['Project Work', '#00b8d9']
       ]);
 
 
@@ -785,16 +784,18 @@ export class HtmlReportRenderer {
     // Helper function to generate colors for a dataset
     function generateColors(dataset, colorPalette, colorMap) {
       const colors = [];
-      const level1Categories = dataset.ids.filter((_, i) => dataset.parents[i] === '');
       const level1ColorMap = new Map();
+      let unmatchedCount = 0;
 
-      level1Categories.forEach((cat, idx) => {
-        label = dataset.label;
-        cat = cat.trim();
-        if (colorMap.has(label)){
-          level1ColorMap.set(cat,colorMap.get(label));
+      dataset.ids.forEach((id, i) => {
+        if (dataset.parents[i] !== '') return;
+        const label = dataset.labels[i].trim();
+        const cat = id.trim();
+        if (colorMap.has(label)) {
+          level1ColorMap.set(cat, colorMap.get(label));
         } else {
-          level1ColorMap.set(cat, colorPalette[idx % colorPalette.length]);
+          level1ColorMap.set(cat, colorPalette[unmatchedCount % colorPalette.length]);
+          unmatchedCount++;
         }
       });
 
