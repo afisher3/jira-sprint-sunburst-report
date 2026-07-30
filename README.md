@@ -74,6 +74,24 @@ Each status option has 1 to many paths to other options, so there could be sever
 - Multi-sprint selection with checkboxes
 - Interactive sunburst visualization with target comparison
 
+## Working with Claude Code
+
+This repo ships a `CLAUDE.md` with the context an AI assistant needs to work here safely — architecture, past production incidents, and conventions that aren't obvious from the code alone (e.g. the local-vs-Lambda environment switch, the ticket-table filter-by-key rule, why `src/cli.ts` is dead code).
+
+To start a new Claude Code session on this project, open a session in this directory and give it a prompt like:
+
+> Read CLAUDE.md and get up to speed on this project before we start.
+
+If you've already had Claude read `CLAUDE.md` earlier in the day and just need a cheap refresher (e.g. a new session after a short break), point it at the condensed version instead:
+
+> Read CLAUDE.compact.md for a quick refresher, then let's work on `<describe your task>`.
+
+There are also reusable project skills in `.claude/skills/` that Claude can invoke directly instead of re-deriving the steps each time:
+- **`build-and-test`** — the build + test loop for this repo, including the sandbox workaround `vitest` needs on macOS.
+- **`add-filterable-stat-card`** — the recipe for adding a new clickable stat card (like the Throughput or Return Rate cards) that filters the tickets table by issue key.
+
+You can ask Claude to use these by name (e.g. "use the `add-filterable-stat-card` skill to add a card for X"), or it will pick them up on its own when a request matches.
+
 ## Prerequisites
 
 - Node.js 22+ (LTS)
