@@ -132,14 +132,14 @@ export class ReportGenerator {
       closedCount,
       reopenedCount
     ] = await Promise.all([
-      this.issueRepo.fetchTotalCountLast30Days(this.config.jira.projectKey),
-      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.refinedStatusName),
-      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.readyForDevStatusName),
-      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.readyForTestingStatusName),
-      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.readyForUatStatusName),
-      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.resolvedStatusName),
-      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.closedStatusName),
-      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.projectKey, this.config.jira.reopenedStatusName)
+      this.issueRepo.fetchTotalCountLast30Days(),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.refinedStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.readyForDevStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.readyForTestingStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.readyForUatStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.resolvedStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.closedStatusName),
+      this.issueRepo.fetchStatusCountLast30Days(this.config.jira.reopenedStatusName)
     ]);
 
     const stageSummaryDataset: StageSummaryDataset = {

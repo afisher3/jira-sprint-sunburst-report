@@ -341,7 +341,7 @@ export class HtmlReportRenderer {
 
     <div class="info-panel">
       <h3>Last 30 Days Summary</h3>
-      <h4>Ticket counts across the whole project for the rolling last 30 days: how many tickets moved into each workflow stage, plus the total number touched overall — independent of which sprints are selected below.</h4>
+      <h4>DevOps team ticket counts for the rolling last 30 days: how many tickets moved into each workflow stage, plus the total number touched overall — independent of which sprints are selected below.</h4>
       <div class="stats stats-4col">
         <div class="stat-card">
           <div class="stat-label">Total Tickets</div>
@@ -387,13 +387,14 @@ export class HtmlReportRenderer {
 
     <div class="info-panel">
       <h3>Sprint Details</h3>
+      <h4>Click the Stale Tickets or Rollover Tickets card to filter the ticket table below to the selected criteria.</h4>
       <div class="stats">
         <div class="stat-card">
           <div class="stat-label">Total Story Points</div>
           <div class="stat-value" id="total-points">0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Issues</div>
+          <div class="stat-label">Tickets</div>
           <div class="stat-value" id="issue-count">0</div>
         </div>
         <div class="stat-card stat-card-clickable" data-throughput-key="stale">
@@ -409,22 +410,22 @@ export class HtmlReportRenderer {
 
     <div class="info-panel">
       <h3>Throughput</h3>
-      <h4>Ticket count (sum of story points). Click a card to filter the ticket table below to the issues behind that number.</h4>
+      <h4>Amount of work completed by phase determined by status updates. Click a card to filter the ticket table below by the selected criteria.</h4>
       <div class="stats">
         <div class="stat-card stat-card-clickable" data-throughput-key="refinement">
-          <div class="stat-label">Refinement Throughput</div>
+          <div class="stat-label">Refinement Complete</div>
           <div class="stat-value" id="refinement-throughput">0</div>
         </div>
         <div class="stat-card stat-card-clickable" data-throughput-key="dev">
-          <div class="stat-label">Dev Throughput</div>
+          <div class="stat-label">Dev and Peer Review Complete</div>
           <div class="stat-value" id="dev-throughput">0</div>
         </div>
         <div class="stat-card stat-card-clickable" data-throughput-key="qa">
-          <div class="stat-label">QA Throughput</div>
+          <div class="stat-label">QA Testing Complete</div>
           <div class="stat-value" id="qa-throughput">0</div>
         </div>
         <div class="stat-card stat-card-clickable" data-throughput-key="uatSignoff">
-          <div class="stat-label">UAT Signoff Throughput</div>
+          <div class="stat-label">UAT Complete</div>
           <div class="stat-value" id="uat-throughput">0</div>
         </div>
       </div>
@@ -432,7 +433,7 @@ export class HtmlReportRenderer {
 
     <div class="info-panel">
       <h3>Return Rates</h3>
-      <h4>Percentage of issues sent back after QA/UAT. Click a card to filter the ticket table below to the issues behind that number.</h4>
+      <h4>Percentage of tickets sent back during QA/UAT. Click a card to filter the ticket table below to the selected criteria.</h4>
       <div class="stats">
         <div class="stat-card stat-card-clickable" data-throughput-key="qaReturn">
           <div class="stat-label">QA Return Rate</div>
@@ -449,7 +450,7 @@ export class HtmlReportRenderer {
       <button type="button" class="accordion-toggle" id="tickets-toggle" aria-expanded="true" aria-controls="tickets-body">
         <span class="accordion-chevron">&#9662;</span>
         <span id="tickets-toggle-expanded-text">Tickets<span id="tickets-count-label"></span></span>
-        <span id="tickets-toggle-collapsed-text" style="display: none;">Table of issues</span>
+        <span id="tickets-toggle-collapsed-text" style="display: none;">Table of Tickets</span>
       </button>
       <div id="tickets-body">
         <h4 class="stats-subtitle" id="tickets-filter-label"></h4>

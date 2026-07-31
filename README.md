@@ -290,49 +290,57 @@ test/
 ## Card Reference & Sample JQL
 
 Every stat card in the report is backed by a specific query in `src/jira/issue-repository.ts`. Sample JQL below uses `sprint = 255` in place of a real sprint ID, except for the Last 30 Days Summary cards, which are intentionally project-scoped rather than sprint-scoped (called out below). These are copied from the current code — if a card's number ever looks wrong, this is the first place to check for drift between this doc and the actual query.
+Many of the JQL queries include a reference to filter ID 11682, the "DevOps Team Filter", which is used for generating the board reviewed at Daily Standups. This filter ensures queried results do not include project specific tickets by utilizing a list of parent epic IDs to check. The list of epics for the filter will require updates whenever a new project begins or the list of tickets to include for the dashboard needs refinement.
+Filter 11682 JQL used during development:
+```
+project = ATHENA
+and issuetype NOT IN (Test, Epic, Initiative)
+and issue NOT IN (portfolioChildIssuesOf("ATHENA-8540"), portfolioChildIssuesOf("ATHENA-10452"), portfolioChildIssuesOf("ATHENA-10511"), portfolioChildIssuesOf("ATHENA-10719"), portfolioChildIssuesOf("ATHENA-10720"))
+ORDER BY Rank
+```
 
 ### Last 30 Days Summary
 Rolling 30-day window, scoped to the whole project — independent of sprint selection or checkboxes.
 
 - **Total Tickets** — count of all project issues updated in the last 30 days. Computed as three non-overlapping 10-day windows, unioned by issue key (`fetchTotalCountLast30Days`).
   ```
-  project = ATHENA AND updated >= -30d AND updated < -20d AND filter = 11682
+  filter = 11682 AND updated >= -30d AND updated < -20d
   ```
   (repeated for the -20d→-10d and -10d→now windows, then de-duplicated)
 
 - **Refined** — issues that transitioned into the "Refined" status at some point in the last 30 days (`fetchStatusCountLast30Days`, status = `refinedStatusName` config value).
   ```
-  project = ATHENA AND Status changed to "Refined" after -30d AND filter = 11682
+  filter = 11682 AND Status changed to "Refined" after -30d
   ```
 
 - **Ready for Dev** — same query shape, status = `readyForDevStatusName`.
   ```
-  project = ATHENA AND Status changed to "ready for dev" after -30d AND filter = 11682
+  filter = 11682 AND Status changed to "ready for dev" after -30d
   ```
 
 - **Ready for Testing** — status = `readyForTestingStatusName`.
   ```
-  project = ATHENA AND Status changed to "Ready for Testing" after -30d AND filter = 11682
+  filter = 11682 AND Status changed to "Ready for Testing" after -30d
   ```
 
 - **Ready for UAT** — status = `readyForUatStatusName`.
   ```
-  project = ATHENA AND Status changed to "Ready for UAT" after -30d AND filter = 11682
+  filter = 11682 AND Status changed to "Ready for UAT" after -30d
   ```
 
 - **Resolved** — status = `resolvedStatusName`.
   ```
-  project = ATHENA AND Status changed to "Resolved" after -30d AND filter = 11682
+  filter = 11682 AND Status changed to "Resolved" after -30d
   ```
 
 - **Closed** — status = `closedStatusName`.
   ```
-  project = ATHENA AND Status changed to "Closed" after -30d AND filter = 11682
+  filter = 11682 AND Status changed to "Closed" after -30d
   ```
 
 - **Reopened** — status = `reopenedStatusName`.
   ```
-  project = ATHENA AND Status changed to "Reopened" after -30d AND filter = 11682
+  filter = 11682 AND Status changed to "Reopened" after -30d
   ```
 
 ### Sprint Details
