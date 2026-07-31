@@ -144,7 +144,17 @@ The generated HTML report shows:
 - Interactive sunburst chart aggregating selected sprints
 - Side-by-side target distribution comparison (configurable)
 - Real-time updates as you check/uncheck sprints
-- Summary stats: total story points, issues, and categories
+- Summary stats: total story points, issues, stale tickets, and rollover tickets
+- A sortable, filterable, collapsible table of every ticket in the selected sprints (see "Tickets Table" below)
+
+## Tickets Table
+
+The report's tickets table lists every issue in whichever sprints are currently checked. Each row shows the issue key (linked out to that issue in Jira), summary, story points, status, and which sprint it belongs to.
+
+- **Sortable** — click any column header to sort by that column ascending; click it again to reverse the order. The active column is highlighted with a ▲/▼ indicator. Sorting is done entirely in the browser, so it stays applied as you check/uncheck sprints or change filters.
+- **Collapsible** — the panel's header is a single toggle button. Its label switches between "Tickets - N" (expanded, showing the current row count) and "Table of issues" (collapsed), with the chevron rotating to match.
+- **Filterable by clicking any stat card** — every clickable card elsewhere in the report (Throughput, Return Rates, and the Stale/Rollover Tickets cards in Sprint Details) narrows the table down to just the issues behind that number when clicked. A subtitle above the table reads "— filtered by \<card name\>"; clicking the same card again clears the filter. See "Card Reference & Sample JQL" below for exactly which issues back each card.
+- **Empty state** — if no tickets match the current sprint selection (or the active filter), the table is replaced with a "No tickets to show." message instead of rendering an empty grid.
 
 ## Running Locally
 
@@ -276,6 +286,118 @@ test/
 - Vitest (testing)
 - esbuild (bundling)
 - Plotly.js (client-side interactive sunburst charts)
+
+## Card Reference & Sample JQL
+
+Every stat card in the report is backed by a specific query in `src/jira/issue-repository.ts`. Sample JQL below uses `sprint = 255` in place of a real sprint ID, except for the Last 30 Days Summary cards, which are intentionally project-scoped rather than sprint-scoped (called out below). These are copied from the current code — if a card's number ever looks wrong, this is the first place to check for drift between this doc and the actual query.
+
+### Last 30 Days Summary
+Rolling 30-day window, scoped to the whole project — independent of sprint selection or checkboxes.
+
+- **Total Tickets** — count of all project issues updated in the last 30 days. Computed as three non-overlapping 10-day windows, unioned by issue key (`fetchTotalCountLast30Days`).
+  ```
+  project = ATHENA AND updated >= -30d AND updated < -20d AND filter = 11682
+  ```
+  (repeated for the -20d→-10d and -10d→now windows, then de-duplicated)
+
+- **Refined** — issues that transitioned into the "Refined" status at some point in the last 30 days (`fetchStatusCountLast30Days`, status = `refinedStatusName` config value).
+  ```
+  project = ATHENA AND Status changed to "Refined" after -30d AND filter = 11682
+  ```
+
+- **Ready for Dev** — same query shape, status = `readyForDevStatusName`.
+  ```
+  project = ATHENA AND Status changed to "ready for dev" after -30d AND filter = 11682
+  ```
+
+- **Ready for Testing** — status = `readyForTestingStatusName`.
+  ```
+  project = ATHENA AND Status changed to "Ready for Testing" after -30d AND filter = 11682
+  ```
+
+- **Ready for UAT** — status = `readyForUatStatusName`.
+  ```
+  project = ATHENA AND Status changed to "Ready for UAT" after -30d AND filter = 11682
+  ```
+
+- **Resolved** — status = `resolvedStatusName`.
+  ```
+  project = ATHENA AND Status changed to "Resolved" after -30d AND filter = 11682
+  ```
+
+- **Closed** — status = `closedStatusName`.
+  ```
+  project = ATHENA AND Status changed to "Closed" after -30d AND filter = 11682
+  ```
+
+- **Reopened** — status = `reopenedStatusName`.
+  ```
+  project = ATHENA AND Status changed to "Reopened" after -30d AND filter = 11682
+  ```
+
+### Sprint Details
+Recomputed for whichever sprints are currently checked.
+
+- **Total Story Points** / **Issues** — sum of story points / count of every issue currently in the selected sprint(s) (`fetchBySprint`).
+  ```
+  sprint = 255
+  ```
+
+- **Stale Tickets (14+ days no status change)** — open issues (excludes Resolved/Closed) in the sprint whose status hasn't changed in 14 days (`fetchStaleTickets`).
+  ```
+  sprint = 255 AND NOT status changed after -14d AND filter = 11682 AND status NOT IN (resolved, closed)
+  ```
+
+- **Rollover Tickets (in > 2 sprints)** — has no JQL of its own. It re-uses the plain `sprint = 255`-style query already run for every windowed sprint, then flags any issue key that shows up in more than 2 of those sprints' results.
+
+### Throughput
+Ticket count and story points for issues that reached the final status of each stage, for the selected sprint(s).
+
+- **Refinement Throughput** — issues that transitioned to the configured `lastStatusOfRefinement` status (`fetchThroughputBySprintStage`).
+  ```
+  sprint = 255 AND Status changed to "ready for dev"
+  ```
+
+- **Dev Throughput** — issues that moved out of peer review into testing/UAT (`fetchDevThroughput`). This one is fully hardcoded and does **not** read the `lastStatusOfDev` config value, even though that field exists in config/schema — worth knowing if you go looking for where it's wired in.
+  ```
+  sprint = 255 AND status CHANGED FROM ("In Peer Review") TO ("Ready for Testing", "Ready for UAT")
+  ```
+
+- **QA Throughput** — issues that transitioned to the configured `lastStatusOfQA` status.
+  ```
+  sprint = 255 AND Status changed to "Ready for UAT"
+  ```
+
+- **UAT Signoff Throughput** — issues that transitioned to the configured `lastStatusOfUAT` status.
+  ```
+  sprint = 255 AND Status changed to "Resolved"
+  ```
+
+### Return Rates
+Each rate is `(numerator issues / denominator issues) * 100`, computed client-side from two separately-fetched JQL counts.
+
+- **QA Return Rate**
+  - Numerator (`fetchReturnCountQA`) — issues flagged as having failed QA at least once:
+    ```
+    sprint = 255 AND "QA Fail Count[Number]" > 0
+    ```
+  - Denominator (`fetchCountPastQA`) — issues that passed through the QA gate at all:
+    ```
+    sprint = 255 AND Status CHANGED FROM ("Ready for Testing", "In Testing") TO ("Ready for UAT", "Reopened")
+    ```
+
+- **UAT Return Rate**
+  - Numerator (`fetchReturnCountUAT`) — issues flagged as having failed UAT at least once:
+    ```
+    sprint = 255 AND "UAT Fail Count[Number]" > 0
+    ```
+  - Denominator (`fetchCountPastUAT`) — issues that passed through the UAT gate at all:
+    ```
+    sprint = 255 AND status CHANGED FROM ("Ready for UAT") TO ("Resolved", "Closed", "Reopened")
+    ```
+
+### Tickets Table
+Not a stat card, but the thing every card above filters into: the full issue list for the selected sprint(s) (`fetchBySprint`, same query as Sprint Details), sortable by any column and collapsible via the panel's toggle button.
 
 ## License
 

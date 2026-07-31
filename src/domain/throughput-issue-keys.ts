@@ -9,4 +9,6 @@ export interface ThroughputIssueKeys {
   uatSignoff: string[];
   qaReturn: string[];
   uatReturn: string[];
+  stale: string[];
+  rollover: string[];
 }

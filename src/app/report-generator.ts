@@ -176,7 +176,8 @@ export class ReportGenerator {
         refinementResult,
         devResult,
         qaResult,
-        uatResult] = await Promise.all([
+        uatResult,
+        staleResult] = await Promise.all([
         this.issueRepo.fetchReturnCountQA(sprint.id, this.config.jira.qaFailCountFieldId),
         this.issueRepo.fetchReturnCountUAT(sprint.id, this.config.jira.uatFailCountFieldId),
         this.issueRepo.fetchCountPastQA(sprint.id),
@@ -184,7 +185,8 @@ export class ReportGenerator {
         this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfRefinement),
         this.issueRepo.fetchDevThroughput(sprint.id),
         this.issueRepo.fetchThroughputBySprintStage(sprint.id,this.config.jira.lastStatusOfQA),
-        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT)
+        this.issueRepo.fetchThroughputBySprintStage(sprint.id, this.config.jira.lastStatusOfUAT),
+        this.issueRepo.fetchStaleTickets(sprint.id)
       ]);
 
       const metricDataset = new MetricDataset(
@@ -204,7 +206,9 @@ export class ReportGenerator {
         qa: qaResult.issueKeys,
         uatSignoff: uatResult.issueKeys,
         qaReturn: qaFailResult.issueKeys,
-        uatReturn: uatFailResult.issueKeys
+        uatReturn: uatFailResult.issueKeys,
+        stale: staleResult.issueKeys,
+        rollover: [] // Filled in below, once every sprint's issues are known
       };
 
       datasets.set(sprint.id, dataset);
@@ -219,6 +223,24 @@ export class ReportGenerator {
         totalStoryPoints: dataset.values.reduce((sum, v) => sum + v, 0),
         categoriesCount: dataset.ids.length
       }, 'Sprint data aggregated');
+    }
+
+    // Rollover tickets: issues present in more than 2 of the windowed sprints. Computed as a
+    // post-pass (rather than per-sprint JQL) since it's a cross-sprint property derived entirely
+    // from issue data already fetched above — no extra Jira calls needed. Flagging is based on
+    // the full loaded sprint window, independent of which sprints a user later checks/unchecks
+    // in the report UI; only the *displayed* rollover count follows that selection client-side.
+    const sprintCountByKey = new Map<string, number>();
+    for (const issues of issuesBySprint.values()) {
+      for (const issue of issues) {
+        sprintCountByKey.set(issue.key, (sprintCountByKey.get(issue.key) || 0) + 1);
+      }
+    }
+    for (const [sprintId, issues] of issuesBySprint.entries()) {
+      const rolloverKeys = issues
+        .filter(issue => (sprintCountByKey.get(issue.key) || 0) > 2)
+        .map(issue => issue.key);
+      throughputIssueKeysBySprint.get(sprintId)!.rollover = rolloverKeys;
     }
 
     // Generate target sunburst if configured

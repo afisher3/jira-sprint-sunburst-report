@@ -322,8 +322,29 @@ export class IssueRepository {
       this.logger.info(`${issueKeys.length} issues found that were reopened after UAT in sprint ${sprintId}`)
       return { totalStoryPoints: 0, issueKeys };
     }
-  
-  
+
+    async fetchStaleTickets(sprintId: number): Promise<ThroughputResult>{
+      // Fetch issues whose status hasn't changed in the last 14 days
+      const jql = `sprint = ${sprintId} AND NOT status changed after -14d AND filter = 11682 AND status NOT IN (resolved, closed) `;
+      let nextPageToken: string | undefined = undefined;
+      const issueKeys: string[] = [];
+      while (true){
+        const response = await this.client.searchJql<JiraSearchResponse>(
+          jql,
+          ['key'],
+          nextPageToken
+        );
+
+        issueKeys.push(...response.issues.map((issue: JiraIssue) => issue.key));
+
+        if (!response.nextPageToken){
+          break;
+        }
+        nextPageToken = response.nextPageToken;
+      }
+      this.logger.info(`${issueKeys.length} stale issues found (no status change in 14 days) in sprint ${sprintId}`)
+      return { totalStoryPoints: 0, issueKeys };
+    }
 
   private mapIssue(jiraIssue: JiraIssue): Issue {
     const fields = jiraIssue.fields;

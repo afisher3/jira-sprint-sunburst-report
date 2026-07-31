@@ -396,9 +396,13 @@ export class HtmlReportRenderer {
           <div class="stat-label">Issues</div>
           <div class="stat-value" id="issue-count">0</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Categories</div>
-          <div class="stat-value" id="category-count">0</div>
+        <div class="stat-card stat-card-clickable" data-throughput-key="stale">
+          <div class="stat-label">Stale Tickets (14+ days no status change)</div>
+          <div class="stat-value" id="stale-count">0</div>
+        </div>
+        <div class="stat-card stat-card-clickable" data-throughput-key="rollover">
+          <div class="stat-label">Rollover Tickets (in &gt; 2 sprints)</div>
+          <div class="stat-value" id="rollover-count">0</div>
         </div>
       </div>
     </div>
@@ -666,7 +670,6 @@ export class HtmlReportRenderer {
         document.getElementById('empty-state').style.display = 'block';
         document.getElementById('total-points').textContent = '0';
         document.getElementById('issue-count').textContent = '0';
-        document.getElementById('category-count').textContent = '0';
         setThroughputValue('dev-throughput', 0, 0);
         setThroughputValue('refinement-throughput', 0, 0);
         setThroughputValue('qa-throughput', 0, 0);
@@ -684,13 +687,9 @@ export class HtmlReportRenderer {
         .filter((_, i) => aggregatedDataset.parents[i] === '')
         .reduce((sum, val) => sum + val, 0);
 
-      // Count level 2 categories (non-root nodes)
-      const categoryCount = aggregatedDataset.ids.filter((_, i) => aggregatedDataset.parents[i] !== '').length;
-
       // Update stats
       document.getElementById('total-points').textContent = totalPoints.toFixed(1);
       document.getElementById('issue-count').textContent = aggregatedDataset.issueCount;
-      document.getElementById('category-count').textContent = categoryCount;
       // innerHTML is safe here — every interpolated value is a number, never free text
       setThroughputValue('dev-throughput', aggregatedDataset.devThroughputCount, aggregatedDataset.devThroughput);
       setThroughputValue('refinement-throughput', aggregatedDataset.refinementThroughputCount, aggregatedDataset.refinementThroughput);
@@ -836,7 +835,9 @@ export class HtmlReportRenderer {
       qa: 'QA Throughput',
       uatSignoff: 'UAT Signoff Throughput',
       qaReturn: 'QA Return Rate',
-      uatReturn: 'UAT Return Rate'
+      uatReturn: 'UAT Return Rate',
+      stale: 'Stale Tickets (14+ days no status change)',
+      rollover: 'Rollover Tickets (in > 2 sprints)'
     };
 
     let activeThroughputFilter = null;
@@ -865,6 +866,14 @@ export class HtmlReportRenderer {
         }
       }
       return keySet;
+    }
+
+    // Stale/Rollover counts must be deduped by key (unlike the Throughput cards' sum-of-lengths
+    // display) — a rollover ticket by definition sits in multiple selected sprints' key lists,
+    // so summing lengths would multiply-count it.
+    function updateStaleRolloverStats(sprintIds) {
+      document.getElementById('stale-count').textContent = getThroughputKeySet(sprintIds, 'stale').size;
+      document.getElementById('rollover-count').textContent = getThroughputKeySet(sprintIds, 'rollover').size;
     }
 
     function buildJiraIssueUrl(issueKey) {
@@ -1001,6 +1010,7 @@ export class HtmlReportRenderer {
       const selectedIds = getSelectedSprintIds();
       const aggregatedDataset = aggregateDatasets(selectedIds);
       renderSunburst(aggregatedDataset);
+      updateStaleRolloverStats(selectedIds);
       updateIssuesTable();
     }
 
@@ -1026,6 +1036,7 @@ export class HtmlReportRenderer {
     const initialSelectedIds = getSelectedSprintIds();
     const initialAggregated = aggregateDatasets(initialSelectedIds);
     renderSunburst(initialAggregated);
+    updateStaleRolloverStats(initialSelectedIds);
     updateIssuesTable();
 
     // Render target sunburst (if present)
