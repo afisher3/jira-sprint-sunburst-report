@@ -127,11 +127,11 @@ export class IssueRepository {
     };
   }
 
-    async fetchStatusCountLast30Days(projectKey: string, status: string): Promise<number> {
+    async fetchStatusCountLast30Days(status: string): Promise<number> {
     // Count of issues in the project that were in the given status at some point in the
     // last 30 days (i.e. transitioned into it), not just issues currently in it. Not scoped
     // to any particular sprint — this is a rolling window, independent of sprint selection.
-    const jql = `project = ${projectKey} AND Status changed to "${status}" after -30d AND filter = 11682`;
+    const jql = `filter = 11682 AND Status changed to "${status}" after -30d`;
     let nextPageToken: string | undefined = undefined;
     let issueCount = 0;
 
@@ -150,11 +150,11 @@ export class IssueRepository {
       nextPageToken = response.nextPageToken;
     }
 
-    this.logger.info({ projectKey, status, issueCount }, 'Issue count by status change in last 30 days');
+    this.logger.info({ status, issueCount }, 'Issue count by status change in last 30 days');
     return issueCount;
   }
 
-    async fetchTotalCountLast30Days(projectKey: string): Promise<number> {
+    async fetchTotalCountLast30Days(): Promise<number> {
     // Count of all issues in the project updated within the last 30 days. A single
     // `updated >= -30d` query can return 500+ issues on a busy project and gets slow, so this
     // is split into three non-overlapping 10-day windows, each fetched separately, then
@@ -167,8 +167,8 @@ export class IssueRepository {
       const windowStart = dayBoundaries[i];
       const windowEnd = dayBoundaries[i + 1];
       const jql = windowEnd === 0
-        ? `project = ${projectKey} AND updated >= ${windowStart}d AND filter = 11682`
-        : `project = ${projectKey} AND updated >= ${windowStart}d AND updated < ${windowEnd}d AND filter = 11682`;
+        ? `filter = 11682 AND updated >= ${windowStart}d`
+        : `filter = 11682 AND updated >= ${windowStart}d AND updated < ${windowEnd}d`;
 
       let nextPageToken: string | undefined = undefined;
 
@@ -190,7 +190,7 @@ export class IssueRepository {
       }
     }
 
-    this.logger.info({ projectKey, issueCount: issueKeys.size }, 'Total issue count in last 30 days');
+    this.logger.info({ issueCount: issueKeys.size }, 'Total issue count in last 30 days');
     return issueKeys.size;
   }
 
