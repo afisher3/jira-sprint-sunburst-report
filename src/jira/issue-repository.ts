@@ -254,7 +254,7 @@ export class IssueRepository {
 
     async fetchCountPastUAT(sprintId: number): Promise<number>{
       // Fetch the count of issues that have passed UAT in a given sprint
-      const jql = `sprint = ${sprintId} AND status CHANGED FROM ("Ready for UAT") TO ("Resolved", "Closed", "Reopened")`;
+      const jql = `sprint = ${sprintId} AND status CHANGED FROM ("Ready for UAT", "In UAT") TO ("Resolved", "Closed", "Reopened")`;
       let nextPageToken: string | undefined = undefined;
       let issueCount = 0;
       while (true){
