@@ -58,7 +58,9 @@ OAuth 2.0 client-credentials (`JiraClient.ensureAuth()`) — `clientId`/`clientS
 
 ## Report Rendering & Client-Side
 
-Single template-literal string, only external dep is the Plotly CDN script — this is intentional (portable S3 artifact). Every embedded data field must go through `ReportDataSerializer.toScriptSafeJson()` (escapes `<` so free-text Jira values can't break out of the `<script>` tag) — never call `JSON.stringify` directly in `html-report-renderer.ts`. Table rows use `createElement`/`textContent`, not `innerHTML`, except where a value is guaranteed numeric. Tickets-table UX detail (sorting/collapse/filtering): README's "Tickets Table" section.
+Single template-literal string, only external dep is the Plotly CDN script — this is intentional (portable S3 artifact). Every embedded data field must go through `ReportDataSerializer.toScriptSafeJson()` (escapes `<` so free-text Jira values can't break out of the `<script>` tag) — never call `JSON.stringify` directly in `html-report-renderer.ts`. Table rows use `createElement`/`textContent`, not `innerHTML`, except where a value is guaranteed numeric. `ReportModel` fields are consumed unconditionally by the serializer (e.g. `filterJqlByKey`) — a fixture missing a new required field crashes `render()` at runtime (`JSON.stringify(undefined).replace` throws), not just silently — always add new fields to `test/html-report-renderer.test.ts` fixtures, don't rely on `tsc` to catch it (excluded from type-checking, see Conventions). Tickets-table UX detail (sorting/collapse/filtering): README's "Tickets Table" section.
+
+Each clickable card's JQL, shown live under the tickets table's "filtered by X" subtitle (`filterJqlByKey` in `report-generator.ts`), is a **third** copy of the same literal query text — alongside the real query in `issue-repository.ts` and README's "Card Reference & Sample JQL." All three must be updated together; nothing enforces this.
 
 ## Logging
 

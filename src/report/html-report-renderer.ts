@@ -21,6 +21,7 @@ export class HtmlReportRenderer {
     const throughputIssueKeysJson = ReportDataSerializer.serializeThroughputIssueKeys(model);
     const sprintNamesJson = ReportDataSerializer.serializeSprintNames(model);
     const baseUrlJson = ReportDataSerializer.serializeBaseUrl(model);
+    const filterJqlJson = ReportDataSerializer.serializeFilterJql(model);
 
     // Generate sprint checkboxes
     const sprintCheckboxes = model.sprints.map((sprint, index) => {
@@ -320,7 +321,8 @@ export class HtmlReportRenderer {
       vertical-align: middle;
     }
     .info-icon:hover,
-    .info-icon:focus-visible {
+    .info-icon:focus-visible,
+    .info-icon.pinned {
       background: #0052cc;
       outline: none;
     }
@@ -348,7 +350,8 @@ export class HtmlReportRenderer {
       z-index: 10;
     }
     .info-icon:hover::after,
-    .info-icon:focus-visible::after {
+    .info-icon:focus-visible::after,
+    .info-icon.pinned::after {
       opacity: 1;
       visibility: visible;
     }
@@ -366,6 +369,17 @@ export class HtmlReportRenderer {
       font-size: 12px;
       font-weight: 400;
       color: #6b778c;
+    }
+    .filter-jql {
+      display: block;
+      margin-top: 4px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+      font-size: 12px;
+      color: #6b778c;
+      background: #f4f5f7;
+      padding: 4px 8px;
+      border-radius: 4px;
+      width: fit-content;
     }
     .info-panel h4 {
       margin-top: 6px;
@@ -506,6 +520,7 @@ export class HtmlReportRenderer {
       </button>
       <div id="tickets-body">
         <h4 class="stats-subtitle" id="tickets-filter-label"></h4>
+        <code class="filter-jql" id="tickets-filter-jql" style="display: none;"></code>
         <div class="table-container">
           <table class="issues-table">
             <thead>
@@ -555,6 +570,9 @@ export class HtmlReportRenderer {
     const throughputIssueKeys = ${throughputIssueKeysJson};
     const sprintNames = ${sprintNamesJson};
     const jiraBaseUrl = ${baseUrlJson};
+    // JQL template per clickable card key (with a {sprintId} placeholder) — shown under the
+    // tickets table's "filtered by X" subtitle. null for keys with no JQL of their own.
+    const filterJqlByKey = ${filterJqlJson};
 
     // Generate colors: each level 1 category gets a distinct color, level 2 children get lighter shades
       const colorPalette = [
@@ -1028,10 +1046,26 @@ export class HtmlReportRenderer {
       }
     }
 
+    // Build the JQL text shown under the "filtered by X" subtitle, for whichever filter key is
+    // active and sprint(s) are currently selected. Rollover has no JQL of its own (cross-sprint
+    // derived — see ReportGenerator), so it gets a plain-English explanation instead.
+    function buildFilterJqlDisplay(filterKey, sprintIds) {
+      const condition = filterJqlByKey[filterKey];
+      if (!condition) {
+        return 'No single JQL — issue key appears in more than 2 of the loaded sprints (computed across sprints at report generation time, not a per-sprint query).';
+      }
+      if (sprintIds.length === 0) {
+        return '';
+      }
+      const sprintClause = sprintIds.length === 1 ? 'sprint = ' + sprintIds[0] : 'sprint in (' + sprintIds.join(', ') + ')';
+      return sprintClause + ' AND ' + condition;
+    }
+
     // Recompute and render the tickets table based on selected sprints + active throughput filter
     function updateIssuesTable() {
       const selectedIds = getSelectedSprintIds();
       const filterLabel = document.getElementById('tickets-filter-label');
+      const filterJql = document.getElementById('tickets-filter-jql');
 
       document.querySelectorAll('.stat-card-clickable').forEach(card => {
         card.classList.toggle('active', card.dataset.throughputKey === activeThroughputFilter);
@@ -1039,11 +1073,15 @@ export class HtmlReportRenderer {
 
       if (!activeThroughputFilter) {
         filterLabel.textContent = '';
+        filterJql.style.display = 'none';
+        filterJql.textContent = '';
         renderIssuesTable(getIssuesForSprints(selectedIds));
         return;
       }
 
       filterLabel.textContent = '— filtered by ' + throughputLabels[activeThroughputFilter];
+      filterJql.textContent = buildFilterJqlDisplay(activeThroughputFilter, selectedIds);
+      filterJql.style.display = filterJql.textContent ? 'block' : 'none';
       const keySet = getThroughputKeySet(selectedIds, activeThroughputFilter);
       const filteredRows = getIssuesForSprints(selectedIds).filter(issue => keySet.has(issue.key));
       renderIssuesTable(filteredRows);
@@ -1058,9 +1096,14 @@ export class HtmlReportRenderer {
       });
     });
 
-    // Info icons sit inside clickable cards — stop their clicks from also toggling the card's filter
+    // Info icons sit inside clickable cards — clicking one pins its tooltip open (so it stays
+    // visible without holding hover) and stops the click from also toggling the card's filter.
+    // Clicking a pinned icon again unpins it.
     document.querySelectorAll('.info-icon').forEach(icon => {
-      icon.addEventListener('click', event => event.stopPropagation());
+      icon.addEventListener('click', event => {
+        event.stopPropagation();
+        icon.classList.toggle('pinned');
+      });
     });
 
     // Handle checkbox changes
