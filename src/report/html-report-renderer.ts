@@ -300,6 +300,58 @@ export class HtmlReportRenderer {
       font-weight: 600;
       margin-bottom: 5px;
     }
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      margin-left: 5px;
+      border-radius: 50%;
+      background: #6b778c;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      font-style: normal;
+      text-transform: none;
+      line-height: 1;
+      cursor: help;
+      position: relative;
+      vertical-align: middle;
+    }
+    .info-icon:hover,
+    .info-icon:focus-visible {
+      background: #0052cc;
+      outline: none;
+    }
+    .info-icon::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 130%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #172b4d;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 400;
+      white-space: normal;
+      width: max-content;
+      max-width: 220px;
+      text-align: left;
+      line-height: 1.4;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.15s ease;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .info-icon:hover::after,
+    .info-icon:focus-visible::after {
+      opacity: 1;
+      visibility: visible;
+    }
     .stat-value {
       font-size: 24px;
       font-weight: 700;
@@ -413,19 +465,19 @@ export class HtmlReportRenderer {
       <h4>Amount of work completed by phase determined by status updates. Click a card to filter the ticket table below by the selected criteria.</h4>
       <div class="stats">
         <div class="stat-card stat-card-clickable" data-throughput-key="refinement">
-          <div class="stat-label">Refinement Complete</div>
+          <div class="stat-label">Refinement Complete<span class="info-icon" tabindex="0" data-tooltip="Tickets that finished refinement and moved to Ready for Dev.">i</span></div>
           <div class="stat-value" id="refinement-throughput">0</div>
         </div>
         <div class="stat-card stat-card-clickable" data-throughput-key="dev">
-          <div class="stat-label">Dev and Peer Review Complete</div>
+          <div class="stat-label">Dev and Peer Review Complete<span class="info-icon" tabindex="0" data-tooltip="Tickets that moved out of Peer Review into Ready for Testing or Ready for UAT.">i</span></div>
           <div class="stat-value" id="dev-throughput">0</div>
         </div>
         <div class="stat-card stat-card-clickable" data-throughput-key="qa">
-          <div class="stat-label">QA Testing Complete</div>
+          <div class="stat-label">QA Testing Complete<span class="info-icon" tabindex="0" data-tooltip="Tickets that finished QA and moved to Ready for UAT.">i</span></div>
           <div class="stat-value" id="qa-throughput">0</div>
         </div>
         <div class="stat-card stat-card-clickable" data-throughput-key="uatSignoff">
-          <div class="stat-label">UAT Complete</div>
+          <div class="stat-label">UAT Complete<span class="info-icon" tabindex="0" data-tooltip="Tickets that finished UAT and moved to Resolved.">i</span></div>
           <div class="stat-value" id="uat-throughput">0</div>
         </div>
       </div>
@@ -1004,6 +1056,11 @@ export class HtmlReportRenderer {
         activeThroughputFilter = activeThroughputFilter === key ? null : key;
         updateIssuesTable();
       });
+    });
+
+    // Info icons sit inside clickable cards — stop their clicks from also toggling the card's filter
+    document.querySelectorAll('.info-icon').forEach(icon => {
+      icon.addEventListener('click', event => event.stopPropagation());
     });
 
     // Handle checkbox changes
