@@ -401,7 +401,7 @@ Each rate is `(numerator issues / denominator issues) * 100`, computed client-si
     ```
   - Denominator (`fetchCountPastUAT`) — issues that passed through the UAT gate at all:
     ```
-    sprint = 255 AND status CHANGED FROM ("Ready for UAT") TO ("Resolved", "Closed", "Reopened")
+    sprint = 255 AND status CHANGED FROM ("Ready for UAT", "In UAT") TO ("Resolved", "Closed", "Reopened")
     ```
 
 ### Tickets Table
