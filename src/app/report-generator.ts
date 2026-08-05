@@ -120,6 +120,23 @@ export class ReportGenerator {
 
     this.logger.info({ sprintCount: windowedSprints.length }, 'Fetching issues for windowed sprints');
 
+    // JQL condition clauses shown in the report under the tickets table's "filtered by X"
+    // subtitle — the client prepends "sprint = X AND " (or "sprint in (...) AND " for multiple
+    // selected sprints) at render time. Must mirror the actual queries in IssueRepository; kept
+    // in sync manually, same as README's "Card Reference & Sample JQL". null = no JQL of its
+    // own (rollover is a cross-sprint derived property, not a single-sprint query — see the
+    // post-loop pass below).
+    const filterJqlByKey: Record<string, string | null> = {
+      refinement: `Status changed to "${this.config.jira.lastStatusOfRefinement}"`,
+      dev: `status CHANGED FROM ("In Peer Review") TO ("Ready for Testing", "Ready for UAT")`,
+      qa: `Status changed to "${this.config.jira.lastStatusOfQA}"`,
+      uatSignoff: `Status changed to "${this.config.jira.lastStatusOfUAT}"`,
+      qaReturn: `"QA Fail Count[Number]" > 0`,
+      uatReturn: `"UAT Fail Count[Number]" > 0`,
+      stale: `NOT status changed after -14d AND filter = 11682 AND status NOT IN (resolved, closed)`,
+      rollover: null
+    };
+
     // "Sprint Summary by Stages" is a rolling 30-day view scoped to the project, independent
     // of sprint selection/windowing — computed once, not per sprint.
     const [
@@ -267,7 +284,8 @@ export class ReportGenerator {
       issuesBySprint,
       throughputIssueKeysBySprint,
       stageSummaryDataset,
-      targetDataset
+      targetDataset,
+      filterJqlByKey
     };
 
     this.logger.debug({ sprintCount: windowedSprints.length }, 'Report model created');

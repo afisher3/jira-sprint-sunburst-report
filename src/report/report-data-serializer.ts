@@ -68,4 +68,8 @@ export class ReportDataSerializer {
   static serializeBaseUrl(model: ReportModel): string {
     return this.toScriptSafeJson(model.baseUrl);
   }
+
+  static serializeFilterJql(model: ReportModel): string {
+    return this.toScriptSafeJson(model.filterJqlByKey);
+  }
 }

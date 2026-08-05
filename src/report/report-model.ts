@@ -22,4 +22,10 @@ export interface ReportModel {
   throughputIssueKeysBySprint: Map<number, ThroughputIssueKeys>; // Issue keys backing each throughput card, per sprint ID
   stageSummaryDataset: StageSummaryDataset;        // Rolling 30-day stage ticket counts (not sprint-scoped)
   targetDataset?: SunburstDataset;                 // Target/ideal distribution
+  filterJqlByKey: Record<string, string | null>;  // JQL condition clause (sprint scoping added
+                                                    // client-side) shown under the tickets table's
+                                                    // "filtered by X" subtitle, per data-throughput-key.
+                                                    // null for keys with no JQL of their own (e.g.
+                                                    // rollover, which is cross-sprint derived — see
+                                                    // ReportGenerator).
 }
